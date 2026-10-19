@@ -1,0 +1,24 @@
+{
+	# Heimnetz ohne öffentliche Domain: Caddy stellt eigene Zertifikate aus (Browser warnt einmal,
+	# bis du das Caddy-Stammzertifikat importierst). Für eine echte Domain mit Let's Encrypt:
+	# die Zeile "local_certs" löschen und darunter "email du@example.de" eintragen.
+	local_certs
+}
+
+paperless.{$DOMAIN} {
+	reverse_proxy paperless:8000
+}
+
+cloud.{$DOMAIN} {
+	redir /.well-known/carddav /remote.php/dav/ 301
+	redir /.well-known/caldav /remote.php/dav/ 301
+	reverse_proxy nextcloud:80
+}
+
+n8n.{$DOMAIN} {
+	reverse_proxy n8n:5678
+}
+
+dokufy.{$DOMAIN} {
+	reverse_proxy dokufy:8787
+}

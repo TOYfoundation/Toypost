@@ -1,5 +1,6 @@
 import type { Config } from '../config.ts';
 import { safeEqual } from '../security.ts';
+import { HttpError } from '../http.ts';
 import { createHmac } from 'node:crypto';
 
 /**
@@ -71,7 +72,19 @@ export class DevPaymentProvider implements PaymentProvider {
   }
 }
 
+/** Eigene Installation ohne Abrechnung: Kauf und Tarifwechsel sind abgeschaltet. */
+export class NoPaymentProvider implements PaymentProvider {
+  readonly id = 'none';
+  async createCheckout(): Promise<{ url: string; providerRef: string }> {
+    throw new HttpError(400, 'payments_disabled', 'In dieser Installation gibt es keine Bezahlung; alle Funktionen sind bereits freigeschaltet.');
+  }
+  parseWebhook(): WebhookEvent | null {
+    return null;
+  }
+}
+
 export function createPaymentProvider(config: Config): PaymentProvider {
+  if (config.paymentProvider === 'none') return new NoPaymentProvider();
   if (config.paymentProvider === 'dev') {
     if (config.production) throw new Error('PAYMENT_PROVIDER=dev ist in Produktion nicht erlaubt.');
     return new DevPaymentProvider(config.publicUrl, config.secret);

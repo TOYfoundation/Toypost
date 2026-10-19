@@ -150,8 +150,8 @@ export async function ingestDocument(ctx: Context, account: AccountRow, userId: 
   });
 
   // 7. Verteilen
-  ctx.delivery.emit(account.id, { type: 'document.analyzed', caseId: caseRow.id, documentId, usedAi });
   const summary = getCaseSummary(db, account.id, caseRow.id);
+  ctx.delivery.emit(account.id, { type: 'document.analyzed', caseId: caseRow.id, documentId, usedAi, case: summary });
   if (summary.deadline && summary.status === 'action') {
     ctx.delivery.emit(account.id, { type: 'deadline.detected', caseId: caseRow.id, caseTitle: summary.title, deadline: summary.deadline });
   }

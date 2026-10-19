@@ -27,6 +27,15 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
     integrations,
     (accountId) => (db.prepare('SELECT webhook_secret FROM accounts WHERE id = ?').get(accountId) as { webhook_secret: string }).webhook_secret,
     log,
+    // Link zum neuesten Paperless-Dokument des Vorgangs, für Aufgaben und Termine in Nextcloud
+    (accountId, caseId) => {
+      const publicUrl = integrations.get(accountId, 'paperless')?.publicUrl;
+      if (!publicUrl) return undefined;
+      const doc = db
+        .prepare('SELECT paperless_id FROM documents WHERE account_id = ? AND case_id = ? AND paperless_id IS NOT NULL ORDER BY received_at DESC LIMIT 1')
+        .get(accountId, caseId) as { paperless_id: number } | undefined;
+      return doc ? `${publicUrl.replace(/\/$/, '')}/documents/${doc.paperless_id}/details` : undefined;
+    },
   );
   const ctx: Context = {
     config,

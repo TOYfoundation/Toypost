@@ -1,0 +1,72 @@
+{
+  "id": "DokufyNextcloud1",
+  "name": "Dokufy → Nextcloud",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "__WEBHOOK_PATH__",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "7d1c0c4e-5a8b-4e8f-9a51-0d0a1b2c3d01",
+      "name": "Ereignis von Dokufy",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "__WEBHOOK_ID__"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "body.davWrites",
+        "options": {}
+      },
+      "id": "7d1c0c4e-5a8b-4e8f-9a51-0d0a1b2c3d02",
+      "name": "Je Nextcloud-Änderung",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=__NEXTCLOUD_URL__/remote.php/dav/{{ $json.path }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "Basic __NEXTCLOUD_BASIC__" }]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "={{ $json.contentType }}",
+        "body": "={{ $json.content }}",
+        "options": {}
+      },
+      "id": "7d1c0c4e-5a8b-4e8f-9a51-0d0a1b2c3d03",
+      "name": "In Nextcloud schreiben",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 0],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "content": "## Eigene Schritte\nJedes Dokufy-Ereignis kommt hier an (Typ in body.type: document.analyzed, deadline.detected, draft.created, case.updated).\nHänge an \"Ereignis von Dokufy\" weitere Zweige an, z. B. eine Nachricht in Nextcloud Talk, eine E-Mail oder einen Telegram-Hinweis bei Fristen unter 3 Tagen.",
+        "height": 220,
+        "width": 420
+      },
+      "id": "7d1c0c4e-5a8b-4e8f-9a51-0d0a1b2c3d04",
+      "name": "Hinweis",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, 200]
+    }
+  ],
+  "connections": {
+    "Ereignis von Dokufy": { "main": [[{ "node": "Je Nextcloud-Änderung", "type": "main", "index": 0 }]] },
+    "Je Nextcloud-Änderung": { "main": [[{ "node": "In Nextcloud schreiben", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Europe/Berlin" },
+  "active": false,
+  "pinData": {}
+}

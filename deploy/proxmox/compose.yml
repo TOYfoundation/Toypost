@@ -1,0 +1,182 @@
+# Dokufy ohne App: Paperless-ngx, Nextcloud, n8n und die Dokufy-Engine in einer VM.
+# Liegt in /opt/dokufy/compose.yml. Werte kommen aus /opt/dokufy/.env.
+# Start: docker compose up -d --build     Lokale KI zusätzlich: docker compose --profile ollama up -d
+
+name: dokufy
+
+services:
+  # ---------- Eingang: Reverse Proxy mit HTTPS ----------
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # ---------- Dokufy-Engine: Auswertung, Fristen, Vorgänge, Entwürfe ----------
+  dokufy:
+    build:
+      context: ./src
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SELF_HOSTED: "true"
+      DOKUFY_SECRET: ${DOKUFY_SECRET}
+      PUBLIC_URL: https://dokufy.${DOMAIN}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
+    ports: ["127.0.0.1:8787:8787"]
+    volumes: [dokufy-data:/data]
+
+  # ---------- Paperless-ngx: Eingang, Texterkennung, Archiv ----------
+  paperless-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: ${PAPERLESS_DB_PASSWORD}
+    volumes: [paperless-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperless"]
+      interval: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes: [redis-data:/data]
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    command: ["gotenberg", "--chromium-disable-javascript=true", "--chromium-allow-list=file:///tmp/.*"]
+
+  tika:
+    image: apache/tika:latest
+    restart: unless-stopped
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    restart: unless-stopped
+    depends_on:
+      paperless-db: { condition: service_healthy }
+      redis: { condition: service_started }
+      gotenberg: { condition: service_started }
+      tika: { condition: service_started }
+    environment:
+      PAPERLESS_REDIS: redis://redis:6379/1
+      PAPERLESS_DBHOST: paperless-db
+      PAPERLESS_DBPASS: ${PAPERLESS_DB_PASSWORD}
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
+      PAPERLESS_URL: https://paperless.${DOMAIN}
+      # "paperless" und "localhost": Aufrufe von Dokufy im Docker-Netz und vom Einrichtungsskript
+      PAPERLESS_ALLOWED_HOSTS: paperless.${DOMAIN},paperless,localhost,127.0.0.1
+      PAPERLESS_ADMIN_USER: ${ADMIN_USER}
+      PAPERLESS_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      PAPERLESS_ADMIN_MAIL: ${ADMIN_EMAIL}
+      PAPERLESS_TIME_ZONE: Europe/Berlin
+      PAPERLESS_OCR_LANGUAGE: deu+eng
+      PAPERLESS_TIKA_ENABLED: "1"
+      PAPERLESS_TIKA_ENDPOINT: http://tika:9998
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
+      # Webhooks an Dokufy im internen Netz auf Port 8787 zulassen
+      PAPERLESS_WEBHOOKS_ALLOWED_PORTS: "80,443,8787"
+      # Gleicher Benutzer wie Nextcloud (www-data), damit der gemeinsame Eingangsordner beschreibbar ist
+      USERMAP_UID: "33"
+      USERMAP_GID: "33"
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - ./data/eingang:/usr/src/paperless/consume
+      - ./data/export:/usr/src/paperless/export
+
+  # ---------- Nextcloud: Kalender, Aufgaben, Entwürfe, Eingangsordner ----------
+  nextcloud-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+    volumes: [nextcloud-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud"]
+      interval: 10s
+      retries: 10
+
+  nextcloud:
+    image: nextcloud:stable
+    restart: unless-stopped
+    depends_on:
+      nextcloud-db: { condition: service_healthy }
+      redis: { condition: service_started }
+    environment:
+      POSTGRES_HOST: nextcloud-db
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${NEXTCLOUD_DB_PASSWORD}
+      NEXTCLOUD_ADMIN_USER: ${ADMIN_USER}
+      NEXTCLOUD_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: cloud.${DOMAIN} nextcloud localhost
+      REDIS_HOST: redis
+      TRUSTED_PROXIES: 172.16.0.0/12
+      OVERWRITEPROTOCOL: https
+      OVERWRITECLIURL: https://cloud.${DOMAIN}
+      PHP_UPLOAD_LIMIT: 1G
+    ports: ["127.0.0.1:8080:80"]
+    volumes:
+      - nextcloud:/var/www/html
+      - ./data/eingang:/mnt/eingang
+
+  nextcloud-cron:
+    image: nextcloud:stable
+    restart: unless-stopped
+    entrypoint: /cron.sh
+    depends_on: [nextcloud]
+    volumes:
+      - nextcloud:/var/www/html
+      - ./data/eingang:/mnt/eingang
+
+  # ---------- n8n: verteilt Ergebnisse, Platz für eigene Abläufe ----------
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      N8N_HOST: n8n.${DOMAIN}
+      N8N_PROTOCOL: https
+      N8N_PROXY_HOPS: "1"
+      WEBHOOK_URL: https://n8n.${DOMAIN}/
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      GENERIC_TIMEZONE: Europe/Berlin
+      TZ: Europe/Berlin
+    ports: ["127.0.0.1:5678:5678"]
+    volumes: [n8n-data:/home/node/.n8n]
+
+  # ---------- Optional: lokale KI, nur mit "--profile ollama" ----------
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    profiles: ["ollama"]
+    volumes: [ollama:/root/.ollama]
+
+volumes:
+  caddy-data:
+  caddy-config:
+  dokufy-data:
+  paperless-db:
+  redis-data:
+  paperless-data:
+  paperless-media:
+  nextcloud-db:
+  nextcloud:
+  n8n-data:
+  ollama:

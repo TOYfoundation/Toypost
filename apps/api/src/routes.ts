@@ -89,7 +89,7 @@ export function buildRouter(ctx: Context): Router {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpError(400, 'invalid_input', 'Die E-Mail-Adresse sieht nicht gültig aus.');
     const password = requireString(req.body, 'password', { min: 10, max: 200 });
     const accountName = requireString(req.body, 'accountName', { optional: true, max: 80 });
-    const { userId } = createAccountWithOwner(db, { name, email, password, accountName });
+    const { userId } = createAccountWithOwner(db, { name, email, password, accountName, plan: ctx.config.selfHosted ? 'enterprise' : 'free' });
     const user = getUserRow(db, userId);
     return { token: issueToken(user), account: toAccountDto(db, getAccountRow(db, user.account_id), user, ctx.now()) };
   });
@@ -162,24 +162,24 @@ export function buildRouter(ctx: Context): Router {
     const a = auth(req);
     const row = getCaseRow(db, a.account.id, req.params.id);
     addTimeline(db, row.id, 'Als bezahlt markiert');
-    return updateCase(db, a.account.id, row.id, { status: 'done' });
+    const summary = updateCase(db, a.account.id, row.id, { status: 'done' });
+    ctx.delivery.emit(a.account.id, { type: 'case.updated', case: summary });
+    return summary;
   });
 
   // ---------- Antwortentwürfe ----------
 
-  r.post('/v1/cases/:id/draft', async (req) => {
-    const a = auth(req);
-    const detail = getCaseDetail(db, a.account.id, req.params.id);
-    const tone = req.body?.tone ? oneOf(req.body.tone, ['sachlich', 'freundlich', 'bestimmt'] as const, 'tone') : 'sachlich';
-    const intent = requireString(req.body, 'intent', { optional: true, max: 300 }) || undefined;
-    const spent = spendCredits(db, a.account, 'draft', { ref: detail.id, userId: a.user.id, now: ctx.now() });
+  /** Antwortentwurf erstellen – aus der App oder per Tag in Paperless. */
+  const createDraft = async (account: AccountRow, author: UserRow, caseId: string, intent?: string, tone: 'sachlich' | 'freundlich' | 'bestimmt' = 'sachlich') => {
+    const detail = getCaseDetail(db, account.id, caseId);
+    const spent = spendCredits(db, account, 'draft', { ref: detail.id, userId: author.id, now: ctx.now() });
     const docs = db
       .prepare(`SELECT title, letter_date AS date, content_text AS text FROM documents WHERE case_id = ? ORDER BY received_at DESC LIMIT 3`)
       .all(detail.id) as { title: string; date: string; text: string }[];
     let draft: { subject: string; body: string };
     try {
       draft = await ctx.ai.draft({
-        senderName: a.user.name,
+        senderName: author.name,
         correspondent: detail.correspondent,
         caseTitle: detail.title,
         reference: detail.reference,
@@ -188,7 +188,7 @@ export function buildRouter(ctx: Context): Router {
         tone,
       });
     } catch (e) {
-      refundCredits(db, a.account.id, spent, `draft-error:${detail.id}`);
+      refundCredits(db, account.id, spent, `draft-error:${detail.id}`);
       throw new HttpError(502, 'ai_failed', 'Der Entwurf konnte gerade nicht erstellt werden. Die Credits wurden erstattet. Bitte versuche es gleich noch einmal.');
     }
     const id = newId('draft');
@@ -198,12 +198,19 @@ export function buildRouter(ctx: Context): Router {
       draft.subject,
       draft.body,
       'draft',
-      a.user.id,
+      author.id,
       nowIso(),
     );
     addTimeline(db, detail.id, 'Antwortentwurf erstellt');
-    ctx.delivery.emit(a.account.id, { type: 'draft.created', caseId: detail.id, draftId: id, subject: draft.subject });
+    ctx.delivery.emit(account.id, { type: 'draft.created', caseId: detail.id, caseTitle: detail.title, draftId: id, subject: draft.subject, body: draft.body });
     return { id, ...draft, creditsSpent: spent };
+  };
+
+  r.post('/v1/cases/:id/draft', async (req) => {
+    const a = auth(req);
+    const tone = req.body?.tone ? oneOf(req.body.tone, ['sachlich', 'freundlich', 'bestimmt'] as const, 'tone') : 'sachlich';
+    const intent = requireString(req.body, 'intent', { optional: true, max: 300 }) || undefined;
+    return createDraft(a.account, a.user, req.params.id, intent, tone);
   });
 
   r.post('/v1/drafts/:id/send', (req) => {
@@ -219,7 +226,9 @@ export function buildRouter(ctx: Context): Router {
     db.prepare(`UPDATE drafts SET status = 'sent', approved_by = ? WHERE id = ?`).run(a.user.id, d.id);
     const followUp = new Date(ctx.now().getTime() + 14 * 86_400_000).toISOString().slice(0, 10);
     addTimeline(db, d.case_id, 'Antwort versendet, Wiedervorlage in 14 Tagen');
-    return updateCase(db, a.account.id, d.case_id, { status: 'waiting', followUpOn: followUp });
+    const summary = updateCase(db, a.account.id, d.case_id, { status: 'waiting', followUpOn: followUp });
+    ctx.delivery.emit(a.account.id, { type: 'case.updated', case: summary });
+    return summary;
   });
 
   // ---------- Dokumente ----------
@@ -486,31 +495,55 @@ export function buildRouter(ctx: Context): Router {
   });
 
   /**
-   * Eingang aus Paperless (über einen n8n-Workflow oder direkt per Paperless-Workflow-Webhook).
-   * Signatur: HMAC-SHA256 des Rohinhalts mit dem Webhook-Geheimnis des Kontos, Header x-dokufy-signature.
+   * Eingang aus Paperless – direkt per Paperless-Workflow-Webhook oder über n8n.
+   * Anmeldung: Header x-dokufy-token = Webhook-Geheimnis des Kontos (Paperless kann feste Header senden)
+   * oder x-dokufy-signature = HMAC-SHA256 des Rohinhalts (für Absender, die signieren können).
+   *
+   * Aktionen (Feld "action"):
+   *  - "added" (Standard): neues Dokument auswerten und einordnen
+   *  - "draft": Antwortentwurf für den Vorgang des Dokuments schreiben (Tag "dokufy-antwort" in Paperless)
+   *  - "done": Vorgang des Dokuments als erledigt markieren (Tag "dokufy-erledigt" in Paperless)
    */
   r.post('/v1/hooks/paperless/:accountId', async (req) => {
     const account = getAccountRow(db, req.params.accountId);
+    const token = String(req.headers['x-dokufy-token'] ?? '');
     const sig = String(req.headers['x-dokufy-signature'] ?? '');
-    if (!sig || !safeEqual(sig, webhookSignature(account.webhook_secret, req.rawBody))) {
-      throw new HttpError(401, 'invalid_signature', 'Signatur ungültig.');
-    }
-    const paperlessId = req.body?.documentId;
-    if (!Number.isInteger(paperlessId)) throw new HttpError(400, 'invalid_input', '"documentId" (Paperless-ID) fehlt.');
+    const authorized =
+      (token && safeEqual(token, account.webhook_secret)) || (sig && safeEqual(sig, webhookSignature(account.webhook_secret, req.rawBody)));
+    if (!authorized) throw new HttpError(401, 'invalid_signature', 'Anmeldung am Webhook fehlgeschlagen (x-dokufy-token oder x-dokufy-signature).');
+
+    // Paperless setzt Platzhalter als Text ein: "123" statt 123
+    const paperlessId = Number(req.body?.documentId);
+    if (!Number.isInteger(paperlessId) || paperlessId <= 0) throw new HttpError(400, 'invalid_input', '"documentId" (Paperless-ID) fehlt.');
+    const action = oneOf(req.body?.action ?? 'added', ['added', 'draft', 'done'] as const, 'action');
     const existing = db.prepare('SELECT id, case_id FROM documents WHERE account_id = ? AND paperless_id = ?').get(account.id, paperlessId) as
       | { id: string; case_id: string }
       | undefined;
+
+    if (action !== 'added') {
+      if (!existing) throw new HttpError(404, 'not_found', `Dokument ${paperlessId} ist in Dokufy noch nicht eingeordnet.`);
+      if (action === 'done') {
+        const summary = updateCase(db, account.id, existing.case_id, { status: 'done' });
+        ctx.delivery.emit(account.id, { type: 'case.updated', case: summary });
+        return { ok: true, caseId: summary.id, status: summary.status };
+      }
+      const owner = db.prepare(`SELECT * FROM users WHERE account_id = ? AND role = 'owner' ORDER BY created_at LIMIT 1`).get(account.id) as unknown as UserRow;
+      const intent = typeof req.body?.intent === 'string' && req.body.intent.trim() ? req.body.intent.trim().slice(0, 300) : undefined;
+      const draft = await createDraft(account, owner, existing.case_id, intent);
+      return { ok: true, caseId: existing.case_id, draftId: draft.id, subject: draft.subject };
+    }
+
     if (existing) return { duplicate: true, documentId: existing.id, caseId: existing.case_id };
 
     let text: string = typeof req.body?.content === 'string' ? req.body.content : '';
-    let title: string | undefined = req.body?.title;
-    let created: string | undefined = req.body?.created;
+    let title: string | undefined = typeof req.body?.title === 'string' && req.body.title ? req.body.title : undefined;
+    let created: string | undefined = typeof req.body?.created === 'string' && req.body.created ? req.body.created : undefined;
     if (!text) {
       const cfg = ctx.integrations.get(account.id, 'paperless');
       if (!cfg) throw new HttpError(400, 'not_configured', 'Paperless ist nicht verbunden und es wurde kein Text mitgeschickt.');
       const doc = await new PaperlessClient(cfg).getDocument(paperlessId);
       text = doc.content;
-      title = title ?? doc.title;
+      // Paperless-Titel sind oft Dateinamen ("scan_0042"); Dokufys eigene Auswertung liefert den besseren Titel.
       created = created ?? doc.created;
     }
     if (text.trim().length < 20) return { skipped: true, reason: 'Kein lesbarer Text (leeres Dokument oder OCR fehlgeschlagen).' };

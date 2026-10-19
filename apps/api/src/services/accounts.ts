@@ -26,7 +26,7 @@ export interface UserRow {
   role: 'owner' | 'admin' | 'member';
 }
 
-export function createAccountWithOwner(db: Db, input: { name: string; email: string; password: string; accountName?: string }) {
+export function createAccountWithOwner(db: Db, input: { name: string; email: string; password: string; accountName?: string; plan?: PlanId }) {
   const email = input.email.toLowerCase();
   if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) {
     throw new HttpError(409, 'email_taken', 'Für diese E-Mail-Adresse gibt es schon ein Konto. Melde dich an.');
@@ -37,7 +37,7 @@ export function createAccountWithOwner(db: Db, input: { name: string; email: str
     db.prepare('INSERT INTO accounts (id, name, plan, seats, webhook_secret, created_at) VALUES (?, ?, ?, 1, ?, ?)').run(
       accountId,
       input.accountName || input.name,
-      'free',
+      input.plan ?? 'free',
       randomToken(32),
       nowIso(),
     );

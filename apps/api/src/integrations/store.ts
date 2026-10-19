@@ -11,7 +11,8 @@ export interface N8nConfig {
 }
 
 export interface IntegrationConfigs {
-  paperless: PaperlessConfig & { caseFieldId?: number };
+  /** publicUrl: Adresse, unter der Menschen Paperless öffnen (für Links in Aufgaben und Terminen) */
+  paperless: PaperlessConfig & { caseFieldId?: number; publicUrl?: string };
   nextcloud: NextcloudConfig;
   n8n: N8nConfig;
 }
@@ -84,6 +85,7 @@ export function validateIntegration(kind: IntegrationKind, body: any): Integrati
         url: url('url'),
         token: str('token'),
         caseFieldId: Number.isInteger(body?.caseFieldId) ? body.caseFieldId : undefined,
+        publicUrl: body?.publicUrl ? url('publicUrl') : undefined,
       };
     case 'nextcloud':
       return {
