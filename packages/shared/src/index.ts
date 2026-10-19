@@ -5,3 +5,4 @@ export * from './dates.ts';
 export * from './deadlines.ts';
 export * from './girocode.ts';
 export * from './demo.ts';
+export * from './toy/index.ts';
