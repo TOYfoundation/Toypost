@@ -1,123 +1,101 @@
 # ToyPost
 
-ToyPost liest jede eingehende Post – ob Papierbrief, PDF oder E-Mail –, erkennt Absender, Frist und Betrag, ordnet sie dem richtigen Vorgang zu und bereitet die Antwort vor. Archiv, Arbeitsplatz und Abläufe kommen aus drei bestehenden Systemen:
+ToyPost ist der Korrespondenz-Assistent des Toy-Ökosystems (ToyChain, ToyCoin, TOYPAY, ToyScan). Er liest jede Post, ob Papierbrief, E-Mail, Telegram, SMS, Matrix, Signal oder Datenfeed. Daraus macht er Vorgänge mit Frist, Betrag und nächstem Schritt, erkennt TOY-Zahlungsaufforderungen und Betrugsversuche und schreibt Antworten. Tester und Community hält er über den Fortschritt der Projekte auf dem Laufenden, in 45 Sprachen und erst nach Freigabe.
 
-| System | Rolle in ToyPost |
-| --- | --- |
-| **Paperless-ngx** | Eingang, Texterkennung (OCR), revisionsfähiges Archiv – die einzige Quelle der Wahrheit für fertige Dokumente |
-| **Nextcloud** | Arbeitsplatz: Fristen im Kalender, Entwürfe als Dateien, Aufgaben in Deck |
-| **n8n** | Abläufe: verbindet Ereignisse mit Zielen, ohne dass ToyPost jede Kombination kennen muss |
+ToyPost ist ein Ableger von Dokufy und übernimmt dessen Grundlage: Paperless-ngx als Archiv und Texterkennung, Nextcloud für Fristen und Entwürfe, n8n für eigene Abläufe.
 
-ToyPost selbst ist die dünne Schicht darüber: Vorgänge, KI-Auswertung, Credits und eine App für alle Geräte.
+## Was ToyPost kann
 
-Das ausführliche Konzept (Funktionen, Tarife, Kostenkalkulation) steht im Claude-Doc „ToyPost – Architekturkonzept“.
+**Alle Kanäle in einem Posteingang**
+- E-Mail (eigener SMTP-Versand), Telegram-Bot, Matrix, Signal, SMS über ein altes Android-Handy oder Twilio, Nextcloud Talk, Discord, Slack, ntfy/UnifiedPush, Webhooks
+- Fotos und Scans aus Messengern gehen an Paperless zur Texterkennung
+- Datenfeeds (RSS, Atom, JSON Feed): Projekt-Blogs, Behörden, Status-Seiten
+- **Eine Person, viele Kanäle:** Kontakte bündeln E-Mail, Telefonnummer, Telegram-Chat und TOY-Adresse, mit Sprache und Gruppen; doppelte Kontakte lassen sich zusammenführen
+- Unterhaltungen bleiben in einem Vorgang; längere Nachrichten werden ausgewertet wie Briefe (Fristen nach BGB und AO, Beträge, IBAN)
+
+**TOY im Alltag**
+- TOY-Zahlungsaufforderungen in Briefen, Mails und Chats werden erkannt: Betrag, Adresse mit EIP-55-Prüfsumme, `toychain:`-Link mit QR-Code zum Öffnen in der TOYPAY Wallet
+- Eigene **TOY-Rechnungen** mit eindeutigem Verwendungszweck (`TP-7K3QXP …`); meldet ToyScan die Zahlung, wird der Vorgang geschlossen und der Zahler bekommt einen Dank in seiner Sprache
+- **Anmelden mit Adresse** (EIP-4361) mit der TOYPAY Wallet
+- ToyPost hat **keine Schlüssel** und sendet nie TOY; bezahlt wird immer in der Wallet
+
+**Schutz**
+- Nachrichten, die nach der Wiederherstellungsphrase fragen, falsche Airdrops, Adress-Fallen (gleicher Anfang und gleiches Ende wie eine bekannte Adresse) und die alten ToyCoin-Token auf Ethereum und Polygon werden markiert, mit Push an den Betreiber
+- Ausgehende Nachrichten mit Phrase oder privatem Schlüssel werden **blockiert**; Geheimnisse werden vor dem Speichern und vor jeder KI geschwärzt
+- Sicherheitsmeldungen von außen werden nie öffentlich, der Absender bekommt den vertraulichen Meldeweg
+
+**Fortschritt der Toy-Projekte, automatisch kommuniziert**
+- liest `docs/STATUS.md` und Releases von `Safehaigit/toycoin`
+- wird ein Meilenstein fertig, liegt eine Mitteilung an die Gruppe „Tester“ zur Freigabe bereit; jede Sprache als Vorschau, Versand über den besten Kanal jedes Empfängers
+- Warnampel von ToyScan: bei Rot sofort Push und Notfall-Mitteilung zum Freigeben
+- Fehlermeldungen per Nachricht werden zu GitHub-Issues, ohne Namen und Telefonnummern
+- monatlicher **Transparenz-Bericht** als Entwurf und Pull Request für `docs/berichte/`
+
+**Automationen:** Ereignis + Bedingungen + Aktionen, als JSON ohne Code. Sieben fertige Vorlagen für die Toy-Projekte. Was viele Menschen erreicht, braucht immer eine Freigabe; in Team-Konten muss eine zweite Person freigeben.
 
 ## Aufbau
 
 ```
 apps/
-  api/        Node.js-API ohne externe Abhängigkeiten (HTTP, SQLite, Krypto aus Node.js)
-  mobile/     Expo-App (iOS, Android, Web) mit Expo Router
+  api/          Node.js-API ohne externe Abhängigkeiten
+    src/channels/   Kanäle: Konfiguration, SMTP, Senden, Eingang, Feeds
+    src/services/   Vorgänge, Nachrichten, Kontakte, Mitteilungen, Automationen, Rechnungen, Bericht
+    src/toy/        ToyChain-RPC, ToyScan, GitHub, Abruf, secp256k1, Anmelden mit Adresse
+  mobile/       Expo-App (iOS, Android, Web): Heute, Vorgänge, Erfassen, Posteingang, Konto
 packages/
-  shared/     Tarife, Credit-Preise, Fristen-Erkennung, GiroCode, Typen, Demo-Daten
-integrations/
-  n8n/        Workflow-Vorlagen zum Importieren in n8n
-tools/
-  preview/    Browser-Vorschau der App-Bildschirme für Screenshots und Design-Review
+  shared/       Fristen, Tarife, GiroCode und der Toy-Kern (TOY-Beträge, Adressen, Zahlungslink, Schutz, 45 Sprachen)
+deploy/proxmox/ Installation auf Proxmox (von Hand, mit einem Befehl oder als ein Block)
+docs/           TOY-SCHNITTSTELLE.md (Vereinbarung mit toycoin), KANAELE.md (Einrichtung)
+tools/          Vorschau der App, Abgleich der Sprachen mit toycoin
 ```
 
 ## Schnellstart
 
-Voraussetzung: Node.js 22.18 oder neuer (Typ-Stripping und `node:sqlite` sind eingebaut).
+Voraussetzung: Node.js 22.18 oder neuer.
 
 ```bash
-# API mit Demo-Daten
 cp apps/api/.env.example apps/api/.env
-npm run seed --workspace @toypost/api      # Konto demo@toypost.app / toypost-demo-2026
+npm run seed --workspace @toypost/api      # Demo-Konto
 npm run api                                # http://localhost:8787
 
-# App
 npm install
-cd apps/mobile && npx expo install --fix   # gleicht Paketversionen an die aktuelle Expo-SDK an
-npm run start                              # QR-Code mit Expo Go scannen, "w" für Web
+cd apps/mobile && npx expo install --fix && npm run start
 ```
 
-Ohne Server lässt sich die App über **„Mit Beispiel-Post ausprobieren“** im Demo-Modus nutzen. Die Server-Adresse setzt `EXPO_PUBLIC_API_URL` oder `extra.apiUrl` in `apps/mobile/app.json`.
+Ohne Server läuft die App im Demo-Modus mit Beispielen für alle Kanäle und die Toy-Projekte. Für den eigenen Server auf Proxmox: `deploy/proxmox/README.md`.
 
-Alles zusammen mit Paperless, Nextcloud und n8n:
+## Einstellungen
+
+| Variable | Bedeutung |
+|---|---|
+| `TOYPOST_SECRET` | mindestens 32 Zeichen, schützt Anmeldungen und gespeicherte Zugangsdaten |
+| `PUBLIC_URL` | öffentliche Adresse der API, für Eingangsadressen und Anmelden mit Adresse |
+| `AI_PROVIDER` | `mock` (nur Regeln), `anthropic` (Claude) oder `ollama` (lokal) |
+| `TOYCHAIN_CHAIN_IDS` | erlaubte Chain-IDs beim Anmelden mit Adresse (leer = jede, solange ToyChain keine feste ID hat) |
+| `SIWE_DOMAIN` | Domain für Anmelden mit Adresse (Standard: Host von `PUBLIC_URL`) |
+| `SCHEDULER` | Abruf von Feeds, GitHub und ToyScan im Hintergrund (Standard an) |
+| `SENTRY_DSN` | Fehlerberichte an Sentry (Projekt „toypost-api“); ohne Inhalte, Geheimnisse geschwärzt |
+
+## Sprachen
+
+Die 45 Sprachen und die Begriffsliste kommen aus `Safehaigit/toycoin`, damit „Aktivierungs-Pfand“ oder „Wiederherstellungsphrase“ überall gleich übersetzt sind:
 
 ```bash
-cp .env.example .env    # Werte setzen
-docker compose up -d
+node tools/toy-i18n-sync.mjs ../toycoin    # erzeugt packages/shared/src/toy/i18n-data.ts
 ```
-
-## Funktionen
-
-- **Heute-Ansicht** – offene Vorgänge nach Frist sortiert, mit der passenden Handlung direkt an der Karte
-- **Fristen-Radar** – erkennt „binnen 14 Tagen“, „innerhalb eines Monats nach Bekanntgabe“ und ausdrückliche Daten; rechnet nach §§ 187 ff. BGB und § 122 AO, verschiebt auf den nächsten Werktag und zeigt die Rechnung an
-- **Zahlungs-Assistent** – liest IBAN und Betrag, erzeugt einen GiroCode für die Banking-App
-- **Antwortentwürfe** – in drei Tonlagen; im Team mit 4-Augen-Freigabe
-- **Wiedervorlage** – nach dem Versand erinnert ToyPost, wenn keine Antwort kommt
-- **Lernende Regeln** – jede Korrektur wird zur Regel; der nächste gleiche Brief braucht keine KI und keine Credits
-- **Frag dein Archiv** – Fragen in Alltagssprache mit Quellenangabe
-
-## Tarife und Credits
-
-Alle Werte stehen an einer Stelle: `packages/shared/src/plans.ts` und `packages/shared/src/credits.ts`. App, API und Tests lesen sie von dort.
-
-| | Free | Pro | Team | Enterprise |
-| --- | --- | --- | --- | --- |
-| Preis | 0 € | 6,99 €/Monat · 69 €/Jahr | 8,99 € je Nutzer/Monat · 89 €/Jahr | ab 19 € je Nutzer/Monat |
-| Credits/Monat | 30 | 400 | 600 je Nutzer | individuell |
-| Speicher | 1 GB | 25 GB | 50 GB je Nutzer | ab 1 TB |
-
-Credits verbraucht nur KI-Arbeit (Auswerten 1, Frage 3, Entwurf 5). Zuerst wird das Monatskontingent verbraucht, dann gekaufte Pakete (24 Monate gültig). Scheitert die KI, werden Credits automatisch erstattet.
-
-## KI-Anbieter
-
-`AI_PROVIDER` in `apps/api/.env`:
-
-- `mock` – Regeln ohne KI (Entwicklung, Tests)
-- `anthropic` – Claude: Haiku für Auswertung und Fragen, Sonnet für Entwürfe
-- `ollama` – lokales Modell, keine Daten verlassen den Server
-
-Regeln laufen immer zuerst und kosten nichts. Briefinhalte werden als Daten, nicht als Anweisungen behandelt.
-
-## Zahlungsanbieter
-
-Die Abrechnung läuft über die Schnittstelle in `apps/api/src/billing/provider.ts`. Mitgeliefert ist ein Entwicklungs-Anbieter, der Zahlungen sofort verbucht (in Produktion gesperrt). Für Stripe oder Paddle wird ein Adapter mit `createCheckout` und `parseWebhook` ergänzt; Bestellungen werden idempotent freigeschaltet.
-
-## Integrationen einrichten
-
-1. **Paperless**: Profil → API-Token erzeugen, in der App unter Konto → Verbindungen eintragen.
-2. **Paperless → ToyPost**: Workflow „Dokument hinzugefügt“ mit Webhook auf die n8n-Vorlage `integrations/n8n/paperless-an-toypost.json` (signiert die Meldung) oder direkt auf die angezeigte Webhook-Adresse.
-3. **Nextcloud**: App-Passwort anlegen (Einstellungen → Sicherheit). Ohne n8n schreibt ToyPost Fristen direkt in den Kalender.
-4. **n8n** (ab Team): `integrations/n8n/toypost-ereignisse-verteilen.json` importieren, Webhook-Adresse in ToyPost eintragen. ToyPost sendet `document.analyzed`, `deadline.detected`, `draft.created`, `case.updated`, signiert mit HMAC-SHA256 (`x-toypost-signature`).
 
 ## Tests
 
 ```bash
-npm test                 # Shared-Logik und API-Integrationstests
-npm run typecheck
+npm test
 ```
 
-Die API-Tests starten einen echten Server und prüfen Registrierung, Auswertung, Fristen, Zuordnung, Regeln, Credits (inkl. Erstattung und leeres Guthaben), Kauf, Tarifwechsel, n8n-Ereignisse mit Signatur, Paperless-Webhook, Suche und Speicherlimit.
+- **Gemeinsames Paket (29 Tests):** Keccak-256 gegen offizielle Vektoren und Node-SHA3, EIP-55-Beispiele, Adressen der Schlüssel 1 und 2, TOY-Beträge, Zahlungslinks, Betrugs- und Phrasenerkennung, 45 Sprachen
+- **API (42 Tests):** dazu der ganze Weg mit nachgebauten Diensten: SMS-Gateway, SMTP-Server, ntfy, GitHub, ToyScan, Feed, Telegram und Twilio mit Signatur, Rechnung und Zahlungseingang, Meilenstein-Mitteilung in zwei Sprachen, Warnampel, Issue ohne Absender, Anmelden mit Adresse, Bericht als Pull Request, Sentry-Bericht
 
-## Sicherheit und Datenschutz
+## Ehrlich
 
-- Passwörter mit scrypt, Zugangstokens HMAC-signiert, Zugangsdaten zu Paperless/Nextcloud AES-256-GCM-verschlüsselt
-- Webhooks in beide Richtungen signiert
-- Ratenlimit für Anmeldung und Registrierung
-- Lokale KI (Ollama) als Option; Cloud-KI nur mit ausdrücklicher Konfiguration
-- Fristberechnung ist eine Hilfe, keine Rechtsberatung; die App zeigt immer die Fundstelle
-
-## Nächste Schritte
-
-- Zahlungs-Adapter (Stripe oder Paddle) und Rechnungsstellung
-- Postgres-Adapter für große Installationen
-- Native Dokumentenscanner mit Kantenerkennung (Expo Dev Build)
-- Push-Benachrichtigungen für Fristen
-
-## Lizenz
-
-Proprietär. Alle Rechte vorbehalten.
+- ToyChain ist bei Meilenstein M1; RPC (M7) und ToyScan (M11) gibt es noch nicht. ToyPost setzt die in toycoin beschriebenen Schnittstellen um und liest Antworten tolerant. Das genaue Format ist in `docs/TOY-SCHNITTSTELLE.md` vorgeschlagen.
+- Keccak-256 und die secp256k1-Prüfung sind nach Standard selbst umgesetzt, weil beim Bau keine Paketquelle erreichbar war. Sie sind gegen offizielle Vektoren und gegen OpenSSL geprüft und sollen gegen eine geprüfte Bibliothek (`@noble/hashes`, `@noble/curves`) getauscht werden.
+- Die Erkennung von Phrasen kennt die offizielle BIP-39-Wortliste nicht und arbeitet mit Mustern und Kontextwörtern.
+- Betrugserkennung warnt nur; sie entscheidet nie über Geld.

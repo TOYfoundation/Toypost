@@ -11,6 +11,7 @@ import { Delivery } from './services/delivery.ts';
 import { buildRouter } from './routes.ts';
 import { ChannelStore } from './channels/store.ts';
 import { runAutomations } from './services/automations.ts';
+import { createReporter, type Reporter } from './monitoring.ts';
 
 export interface AppOptions {
   db?: Db;
@@ -18,12 +19,21 @@ export interface AppOptions {
   payments?: PaymentProvider;
   now?: () => Date;
   log?: (msg: string, extra?: unknown) => void;
+  reporter?: Reporter;
+  fetch?: typeof fetch;
 }
 
 export function createApp(config: Config, opts: AppOptions = {}): { server: Server; ctx: Context } {
   const db = opts.db ?? openDb(config.databasePath);
   const keys = new Keys(config.secret);
-  const log = opts.log ?? ((msg: string, extra?: unknown) => console.log(`[toypost] ${msg}`, extra ?? ''));
+  const baseLog = opts.log ?? ((msg: string, extra?: unknown) => console.log(`[toypost] ${msg}`, extra ?? ''));
+  const reporter =
+    opts.reporter ?? createReporter(config.sentryDsn, { release: 'toypost@0.2.0', environment: config.production ? 'production' : 'development', f: opts.fetch, log: (m) => baseLog(m) });
+  // failed deliveries, polls and automations also go to Sentry as warnings
+  const log = (msg: string, extra?: unknown) => {
+    baseLog(msg, extra);
+    if (/fehlgeschlagen|nicht gesendet|nicht erreichbar/i.test(msg) && !/^Sentry/.test(msg)) reporter.message(msg, 'warning');
+  };
   const integrations = new IntegrationStore(db, keys);
   const delivery = new Delivery(
     integrations,
@@ -48,6 +58,7 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
     integrations,
     delivery,
     channels: new ChannelStore(db, keys),
+    reporter,
     now: opts.now ?? (() => new Date()),
     log,
   };
@@ -106,6 +117,7 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
         sendJson(res, e.status, { error: { code: e.code, message: e.message, details: e.details } }, cors);
       } else {
         log('Unerwarteter Fehler', e);
+        reporter.exception(e, { route: `${req.method} ${new URL(req.url ?? '/', 'http://local').pathname.replace(/\/(case|doc|ch|msg|ct|inv|bc|auto|draft)_[\w]+/g, '/:id')}` });
         sendJson(res, 500, { error: { code: 'internal', message: 'Da ist etwas schiefgelaufen. Bitte versuche es erneut.' } }, cors);
       }
     }

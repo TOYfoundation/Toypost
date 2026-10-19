@@ -6,6 +6,7 @@ import type { PaymentProvider } from './billing/provider.ts';
 import type { IntegrationStore } from './integrations/store.ts';
 import type { Delivery } from './services/delivery.ts';
 import type { ChannelStore } from './channels/store.ts';
+import type { Reporter } from './monitoring.ts';
 
 export interface Context {
   config: Config;
@@ -16,6 +17,7 @@ export interface Context {
   integrations: IntegrationStore;
   delivery: Delivery;
   channels: ChannelStore;
+  reporter: Reporter;
   /** Zeitquelle, in Tests überschreibbar */
   now: () => Date;
   log: (msg: string, extra?: unknown) => void;

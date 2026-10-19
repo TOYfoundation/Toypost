@@ -557,3 +557,25 @@ test('Draft reply sent through the contact’s channel', async () => {
   const out = seen.filter((s) => s.path === '/android/message').slice(before);
   assert.equal(JSON.parse(out[0].body).phoneNumbers[0], '+255712345678');
 });
+
+test('Sentry: envelope to the right endpoint, secrets removed', async () => {
+  const { parseDsn, createReporter } = await import('../src/monitoring.ts');
+  assert.deepEqual(parseDsn('https://abc123@o1.ingest.de.sentry.io/4512284837871696'), {
+    endpoint: 'https://o1.ingest.de.sentry.io/api/4512284837871696/envelope/',
+    publicKey: 'abc123',
+  });
+  const sent: { url: string; init: any }[] = [];
+  const f = (async (url: string, init: any) => (sent.push({ url, init }), new Response('{}'))) as unknown as typeof fetch;
+  const r = createReporter('https://abc123@o1.ingest.de.sentry.io/42', { release: 't', environment: 'test', f });
+  r.exception(new Error('Absturz mit private key 0x' + 'ab'.repeat(32)), { route: 'GET /v1/x' });
+  await Promise.all([...r.pending]);
+  const lines = sent[0].init.body.split('\n').map((l: string) => JSON.parse(l));
+  assert.equal(lines.length, 3);
+  assert.equal(lines[1].type, 'event');
+  assert.equal(lines[2].exception.values[0].type, 'Error');
+  assert.ok(!sent[0].init.body.includes('abab'), 'key removed');
+  assert.match(sent[0].init.headers['x-sentry-auth'], /sentry_key=abc123/);
+  const off = createReporter(undefined, { release: 't', environment: 'test', f });
+  off.exception(new Error('x'));
+  assert.equal(sent.length, 1);
+});

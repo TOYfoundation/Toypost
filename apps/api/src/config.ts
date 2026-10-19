@@ -23,6 +23,8 @@ export interface Config {
   githubApi: string;
   /** Hintergrund-Abruf von Feeds, GitHub und ToyScan */
   scheduler: boolean;
+  /** Fehlerberichte an Sentry (Projekt toypost-api); leer = aus */
+  sentryDsn?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -67,5 +69,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       }),
     githubApi: env.GITHUB_API ?? 'https://api.github.com',
     scheduler: !['0', 'false', 'nein'].includes(String(env.SCHEDULER ?? 'true').toLowerCase()),
+    sentryDsn: env.SENTRY_DSN || undefined,
   };
 }

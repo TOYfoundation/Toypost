@@ -104,6 +104,10 @@ ANTHROPIC_API_KEY=$(sauber "${A[ANTHROPIC_API_KEY]:-}")
 OLLAMA_MODEL=$(sauber "${A[OLLAMA_MODEL]:-qwen3:8b}")
 COMPOSE_PROFILES=$profile
 
+# --- Toy-Projekte und Fehlerberichte (optional) ---
+TOYCHAIN_CHAIN_IDS=
+SENTRY_DSN=$(sauber "${A[SENTRY_DSN]:-}")
+
 # --- Geheimnisse, automatisch erzeugt; nicht weitergeben ---
 TOYPOST_SECRET=$(zufall 32)
 PAPERLESS_SECRET_KEY=$(zufall 32)
