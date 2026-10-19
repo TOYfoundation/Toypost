@@ -21,7 +21,7 @@ export interface AppOptions {
 export function createApp(config: Config, opts: AppOptions = {}): { server: Server; ctx: Context } {
   const db = opts.db ?? openDb(config.databasePath);
   const keys = new Keys(config.secret);
-  const log = opts.log ?? ((msg: string, extra?: unknown) => console.log(`[dokufy] ${msg}`, extra ?? ''));
+  const log = opts.log ?? ((msg: string, extra?: unknown) => console.log(`[toypost] ${msg}`, extra ?? ''));
   const integrations = new IntegrationStore(db, keys);
   const delivery = new Delivery(
     integrations,

@@ -38,8 +38,8 @@ export class Keys {
   readonly encKey: Buffer;
 
   constructor(secret: string) {
-    this.signKey = scryptSync(secret, 'dokufy-sign', 32);
-    this.encKey = scryptSync(secret, 'dokufy-enc', 32);
+    this.signKey = scryptSync(secret, 'toypost-sign', 32);
+    this.encKey = scryptSync(secret, 'toypost-enc', 32);
   }
 
   sign(payload: TokenPayload): string {
@@ -76,7 +76,7 @@ export class Keys {
   }
 }
 
-/** HMAC-SHA256-Signatur für eingehende Webhooks (n8n → Dokufy). */
+/** HMAC-SHA256-Signatur für eingehende Webhooks (n8n → ToyPost). */
 export function webhookSignature(secret: string, rawBody: string): string {
   return createHmac('sha256', secret).update(rawBody).digest('hex');
 }

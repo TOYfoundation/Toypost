@@ -19,6 +19,6 @@ n8n.{$DOMAIN} {
 	reverse_proxy n8n:5678
 }
 
-dokufy.{$DOMAIN} {
-	reverse_proxy dokufy:8787
+toypost.{$DOMAIN} {
+	reverse_proxy toypost:8787
 }

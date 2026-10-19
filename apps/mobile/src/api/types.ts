@@ -7,7 +7,7 @@ import type {
   DocumentSummary,
   Plan,
   PlanId,
-} from '@dokufy/shared';
+} from '@toypost/shared';
 
 export interface TodayView {
   today: string;

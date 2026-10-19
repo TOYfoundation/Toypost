@@ -3,8 +3,8 @@ import type { CaseSummary, Deadline } from '../shared.ts';
 /**
  * Nextcloud über WebDAV (Dateien) und CalDAV (Fristen als Termine, Vorgänge als Aufgaben). Anmeldung mit App-Passwort.
  *
- * Dokufy beschreibt jede Änderung als "DAV-Schreibvorgang" (Pfad + Inhalt). Diese Schreibvorgänge führt entweder
- * Dokufy selbst aus oder – wenn n8n verbunden ist – n8n. Alle Kalenderobjekte haben feste UIDs; erneutes Schreiben
+ * ToyPost beschreibt jede Änderung als "DAV-Schreibvorgang" (Pfad + Inhalt). Diese Schreibvorgänge führt entweder
+ * ToyPost selbst aus oder – wenn n8n verbunden ist – n8n. Alle Kalenderobjekte haben feste UIDs; erneutes Schreiben
  * aktualisiert also, statt Duplikate anzulegen.
  */
 
@@ -12,9 +12,9 @@ export interface NextcloudConfig {
   url: string;
   user: string;
   appPassword: string;
-  /** Kalender für Fristen und Aufgaben, z. B. "dokufy" */
+  /** Kalender für Fristen und Aufgaben, z. B. "toypost" */
   calendar: string;
-  /** Ordner für Entwürfe, z. B. "Dokufy" */
+  /** Ordner für Entwürfe, z. B. "ToyPost" */
   folder: string;
 }
 
@@ -42,15 +42,15 @@ function stamp(now = new Date()): string {
 }
 
 function wrap(component: string[]): string {
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Dokufy//DE', ...component, 'END:VCALENDAR'].join('\r\n');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ToyPost//DE', ...component, 'END:VCALENDAR'].join('\r\n');
 }
 
 export function deadlineUid(caseId: string, d: Deadline): string {
-  return `dokufy-${caseId}-${d.kind}`;
+  return `toypost-${caseId}-${d.kind}`;
 }
 
 export function taskUid(caseId: string): string {
-  return `dokufy-${caseId}-aufgabe`;
+  return `toypost-${caseId}-aufgabe`;
 }
 
 /** Ganztägiger Termin mit Erinnerungen 7, 3 und 1 Tag vorher. Abgesagt, sobald der Vorgang erledigt ist. */
@@ -71,7 +71,7 @@ export function buildDeadlineIcs(uid: string, caseTitle: string, d: Deadline, li
     `SUMMARY:${icsEscape(`${KIND_LABEL[d.kind]}: ${caseTitle}`)}`,
     `DESCRIPTION:${icsEscape(`${d.explanation}\nTextstelle: „${d.phrase}“${link ? `\n${link}` : ''}`)}`,
     `STATUS:${cancelled ? 'CANCELLED' : 'CONFIRMED'}`,
-    'CATEGORIES:Dokufy',
+    'CATEGORIES:ToyPost',
     ...alarms,
     'END:VEVENT',
   ]);
@@ -96,7 +96,7 @@ export function buildTaskIcs(c: CaseSummary, link?: string): string {
     ...(due ? [`DUE;VALUE=DATE:${due.replace(/-/g, '')}`] : []),
     `PRIORITY:${soon ? 1 : 5}`,
     ...(done ? ['STATUS:COMPLETED', 'PERCENT-COMPLETE:100', `COMPLETED:${stamp()}`] : ['STATUS:NEEDS-ACTION']),
-    'CATEGORIES:Dokufy',
+    'CATEGORIES:ToyPost',
     'END:VTODO',
   ]);
 }

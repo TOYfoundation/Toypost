@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import { addDays, formatDateDe, formatEuro, formatIban, relativeDueDe, todayIso, type CaseDetail } from '@dokufy/shared';
+import { addDays, formatDateDe, formatEuro, formatIban, relativeDueDe, todayIso, type CaseDetail } from '@toypost/shared';
 import { Button, Card, Chip, Divider, Field, Icon, Loading, Notice, Row, Screen, Section } from '../components/base.tsx';
 import { DeadlineStamp } from '../components/case.tsx';
 import { useNav, useParam } from '../nav.ts';
@@ -93,7 +93,7 @@ export function CaseScreen() {
         <Text style={s.summary}>{c.summary}</Text>
         {c.confidence < 0.8 ? (
           <View style={{ marginTop: space.md }}>
-            <Notice tone="warning">Dokufy ist sich bei diesem Vorgang nicht sicher. Prüfe Absender und Frist; deine Korrektur wird zur Regel.</Notice>
+            <Notice tone="warning">ToyPost ist sich bei diesem Vorgang nicht sicher. Prüfe Absender und Frist; deine Korrektur wird zur Regel.</Notice>
           </View>
         ) : null}
       </Card>
@@ -171,7 +171,7 @@ export function CaseScreen() {
                   setMessage({ tone: 'success', text: 'Entwurf kopiert.' });
                 }}
               />
-              <Button small icon="send" label="Als versendet markieren" busy={busy === 'send'} onPress={() => run('send', () => api.sendDraft(c.draft!.id), 'Versendet. Dokufy erinnert dich in 14 Tagen, falls keine Antwort kommt.')} />
+              <Button small icon="send" label="Als versendet markieren" busy={busy === 'send'} onPress={() => run('send', () => api.sendDraft(c.draft!.id), 'Versendet. ToyPost erinnert dich in 14 Tagen, falls keine Antwort kommt.')} />
             </View>
           </Card>
         ) : (
@@ -251,7 +251,7 @@ export function CaseScreen() {
             icon="clock"
             label="In 7 Tagen erinnern"
             busy={busy === 'snooze'}
-            onPress={() => run('snooze', () => api.updateCase(c.id, { status: 'waiting', followUpOn: addDays(today, 7) }), 'Dokufy erinnert dich in 7 Tagen.')}
+            onPress={() => run('snooze', () => api.updateCase(c.id, { status: 'waiting', followUpOn: addDays(today, 7) }), 'ToyPost erinnert dich in 7 Tagen.')}
           />
         ) : null}
       </View>

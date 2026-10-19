@@ -17,7 +17,7 @@ import {
   type CaseDetail,
   type CaseStatus,
   type PlanId,
-} from '@dokufy/shared';
+} from '@toypost/shared';
 import type { Api, IntegrationKind, IntegrationState, LedgerEntry, Me, UploadInput } from './types.ts';
 import { ApiError } from './types.ts';
 
@@ -40,7 +40,7 @@ export class DemoApi implements Api {
     paperless: { connected: true, summary: 'paperless.beispiel.de' },
     nextcloud: { connected: true, summary: 'alex @ cloud.beispiel.de' },
     n8n: { connected: false },
-    webhookUrl: 'https://api.dokufy.app/v1/hooks/paperless/demo',
+    webhookUrl: 'https://api.toypost.app/v1/hooks/paperless/demo',
   };
 
   private delay<T>(value: T, ms = 220): Promise<T> {
@@ -74,7 +74,7 @@ export class DemoApi implements Api {
     return this.delay({
       id: 'acc_demo',
       name: 'Haushalt Beispiel',
-      email: 'demo@dokufy.app',
+      email: 'demo@toypost.app',
       plan: this.plan,
       seats: 1,
       storageUsedBytes: 1_870_000_000,
@@ -250,13 +250,13 @@ export class DemoApi implements Api {
       const pack = CREDIT_PACKS.find((p) => p.id === input.pack)!;
       this.purchasedCredits += pack.credits;
       this.ledgerEntries.unshift({ credits: pack.credits, action: 'purchase', label: 'Credit-Paket gekauft', ref: null, at: new Date().toISOString() });
-      return this.delay({ url: '', amountCents: pack.priceCents, description: `${pack.credits} Dokufy-Credits` }, 600);
+      return this.delay({ url: '', amountCents: pack.priceCents, description: `${pack.credits} ToyPost-Credits` }, 600);
     }
     const before = PLANS[this.plan].monthlyCredits;
     this.plan = input.plan;
     const after = PLANS[this.plan].monthlyCredits * (PLANS[this.plan].perSeat ? Math.max(input.seats ?? 1, PLANS[this.plan].minSeats) : 1);
     if (after > before) this.planCredits += after - before;
-    return this.delay({ url: '', amountCents: priceFor(input.plan, input.interval, input.seats), description: `Dokufy ${PLANS[input.plan].name}` }, 600);
+    return this.delay({ url: '', amountCents: priceFor(input.plan, input.interval, input.seats), description: `ToyPost ${PLANS[input.plan].name}` }, 600);
   }
 
   async integrations() {

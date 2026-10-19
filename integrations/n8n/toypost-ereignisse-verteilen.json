@@ -1,23 +1,23 @@
 {
-  "name": "Dokufy: Ereignisse an Nextcloud verteilen",
+  "name": "ToyPost: Ereignisse an Nextcloud verteilen",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "dokufy",
+        "path": "toypost",
         "responseMode": "onReceived",
         "options": { "rawBody": true }
       },
       "id": "b2e1d3f5-0001-4b2a-8f02-000000000001",
-      "name": "Dokufy-Ereignis",
+      "name": "ToyPost-Ereignis",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [200, 320],
-      "webhookId": "dokufy"
+      "webhookId": "toypost"
     },
     {
       "parameters": {
-        "jsCode": "// Prüft die Signatur, damit nur Dokufy Termine anlegen kann.\nconst crypto = require('crypto');\nconst item = $input.first();\nconst raw = item.binary?.data ? Buffer.from(item.binary.data.data, 'base64').toString('utf8') : JSON.stringify(item.json.body);\nconst sig = item.json.headers['x-dokufy-signature'];\nconst expected = crypto.createHmac('sha256', $env.DOKUFY_WEBHOOK_SECRET).update(raw).digest('hex');\nif (!sig || sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {\n  throw new Error('Ungültige Signatur – Ereignis verworfen.');\n}\nreturn [{ json: JSON.parse(raw) }];"
+        "jsCode": "// Prüft die Signatur, damit nur ToyPost Termine anlegen kann.\nconst crypto = require('crypto');\nconst item = $input.first();\nconst raw = item.binary?.data ? Buffer.from(item.binary.data.data, 'base64').toString('utf8') : JSON.stringify(item.json.body);\nconst sig = item.json.headers['x-toypost-signature'];\nconst expected = crypto.createHmac('sha256', $env.TOYPOST_WEBHOOK_SECRET).update(raw).digest('hex');\nif (!sig || sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {\n  throw new Error('Ungültige Signatur – Ereignis verworfen.');\n}\nreturn [{ json: JSON.parse(raw) }];"
       },
       "id": "b2e1d3f5-0002-4b2a-8f02-000000000002",
       "name": "Signatur prüfen",
@@ -59,7 +59,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Ganztägiger Termin mit Erinnerungen 7, 3 und 1 Tag vorher.\nconst e = $input.first().json;\nconst d = e.deadline;\nconst day = d.date.replace(/-/g, '');\nconst next = new Date(d.date + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);\nconst end = next.toISOString().slice(0, 10).replace(/-/g, '');\nconst esc = (s) => String(s).replace(/\\\\/g, '\\\\\\\\').replace(/;/g, '\\\\;').replace(/,/g, '\\\\,').replace(/\\n/g, '\\\\n');\nconst label = { zahlung: 'Zahlung', einspruch: 'Einspruchsfrist', antwort: 'Antwort fällig', kuendigung: 'Kündigungsfrist', allgemein: 'Frist' }[d.kind];\nconst alarms = [7, 3, 1].map((n) => `BEGIN:VALARM\\r\\nACTION:DISPLAY\\r\\nDESCRIPTION:${esc(e.caseTitle)}\\r\\nTRIGGER:-P${n}D\\r\\nEND:VALARM`).join('\\r\\n');\nconst uid = `dokufy-${e.caseId}-${d.kind}`;\nconst ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Dokufy//n8n//DE','BEGIN:VEVENT',`UID:${uid}`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}/,'')}`,`DTSTART;VALUE=DATE:${day}`,`DTEND;VALUE=DATE:${end}`,`SUMMARY:${esc(label + ': ' + e.caseTitle)}`,`DESCRIPTION:${esc(d.explanation)}`,alarms,'END:VEVENT','END:VCALENDAR'].join('\\r\\n');\nreturn [{ json: { uid, ics } }];"
+        "jsCode": "// Ganztägiger Termin mit Erinnerungen 7, 3 und 1 Tag vorher.\nconst e = $input.first().json;\nconst d = e.deadline;\nconst day = d.date.replace(/-/g, '');\nconst next = new Date(d.date + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);\nconst end = next.toISOString().slice(0, 10).replace(/-/g, '');\nconst esc = (s) => String(s).replace(/\\\\/g, '\\\\\\\\').replace(/;/g, '\\\\;').replace(/,/g, '\\\\,').replace(/\\n/g, '\\\\n');\nconst label = { zahlung: 'Zahlung', einspruch: 'Einspruchsfrist', antwort: 'Antwort fällig', kuendigung: 'Kündigungsfrist', allgemein: 'Frist' }[d.kind];\nconst alarms = [7, 3, 1].map((n) => `BEGIN:VALARM\\r\\nACTION:DISPLAY\\r\\nDESCRIPTION:${esc(e.caseTitle)}\\r\\nTRIGGER:-P${n}D\\r\\nEND:VALARM`).join('\\r\\n');\nconst uid = `toypost-${e.caseId}-${d.kind}`;\nconst ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ToyPost//n8n//DE','BEGIN:VEVENT',`UID:${uid}`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}/,'')}`,`DTSTART;VALUE=DATE:${day}`,`DTEND;VALUE=DATE:${end}`,`SUMMARY:${esc(label + ': ' + e.caseTitle)}`,`DESCRIPTION:${esc(d.explanation)}`,alarms,'END:VEVENT','END:VCALENDAR'].join('\\r\\n');\nreturn [{ json: { uid, ics } }];"
       },
       "id": "b2e1d3f5-0004-4b2a-8f02-000000000004",
       "name": "Kalendereintrag bauen",
@@ -102,7 +102,7 @@
             { "name": "title", "value": "=Antwort prüfen: {{ $json.subject }}" },
             { "name": "type", "value": "plain" },
             { "name": "order", "value": "0" },
-            { "name": "description", "value": "=Entwurf in Dokufy, Vorgang {{ $json.caseId }}" }
+            { "name": "description", "value": "=Entwurf in ToyPost, Vorgang {{ $json.caseId }}" }
           ]
         },
         "options": {}
@@ -116,7 +116,7 @@
     }
   ],
   "connections": {
-    "Dokufy-Ereignis": { "main": [[{ "node": "Signatur prüfen", "type": "main", "index": 0 }]] },
+    "ToyPost-Ereignis": { "main": [[{ "node": "Signatur prüfen", "type": "main", "index": 0 }]] },
     "Signatur prüfen": { "main": [[{ "node": "Nach Ereignis", "type": "main", "index": 0 }]] },
     "Nach Ereignis": {
       "main": [

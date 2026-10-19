@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
-# Dokufy: Installation mit einem Befehl auf einem Proxmox-Host.
-# Holt Dokufy von GitHub, legt eine Debian-13-VM an, installiert darin Docker und alle Dienste
-# und verknüpft Paperless-ngx, Nextcloud, n8n und die Dokufy-Engine.
+# ToyPost: Installation mit einem Befehl auf einem Proxmox-Host.
+# Holt ToyPost von GitHub, legt eine Debian-13-VM an, installiert darin Docker und alle Dienste
+# und verknüpft Paperless-ngx, Nextcloud, n8n und die ToyPost-Engine.
 #
 # Aufruf als root in der Shell des Proxmox-Hosts:  bash proxmox-install.sh
 # Darf mehrfach laufen: Antworten werden gemerkt, eine vorhandene VM wird weiterverwendet.
-# Ohne Rückfragen: alle Angaben als Umgebungsvariablen setzen (siehe "Angaben") und DOKUFY_JA=1.
+# Ohne Rückfragen: alle Angaben als Umgebungsvariablen setzen (siehe "Angaben") und TOYPOST_JA=1.
 set -euo pipefail
 
-REPO=${DOKUFY_REPO:-Safehaigit/dokufy}
-REF=${DOKUFY_REF:-main}
-GITHUB_API=${DOKUFY_GITHUB_API:-https://api.github.com}
-WORK=${DOKUFY_WORK:-/root/dokufy-install}
-IMAGE_URL=${DOKUFY_IMAGE_URL:-https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2}
-IMAGE_DIR=${DOKUFY_IMAGE_DIR:-/var/lib/vz/template}
-VM_USER=dokufy
+REPO=${TOYPOST_REPO:-Safehaigit/toypost}
+REF=${TOYPOST_REF:-main}
+GITHUB_API=${TOYPOST_GITHUB_API:-https://api.github.com}
+WORK=${TOYPOST_WORK:-/root/toypost-install}
+IMAGE_URL=${TOYPOST_IMAGE_URL:-https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2}
+IMAGE_DIR=${TOYPOST_IMAGE_DIR:-/var/lib/vz/template}
+VM_USER=toypost
 
 schritt() { printf '\n\033[1;34m▸ %s\033[0m\n' "$*"; }
 ok()      { printf '  \033[32m✓\033[0m %s\n' "$*"; }
@@ -30,7 +30,7 @@ chmod 700 "$WORK"
 exec > >(tee -a "$WORK/install.log") 2>&1
 
 # Rückfragen kommen vom Terminal, auch wenn das Skript per Pipe gestartet wurde
-AUTO=${DOKUFY_JA:-0}
+AUTO=${TOYPOST_JA:-0}
 if [ "$AUTO" != 1 ] && { exec 3</dev/tty; } 2>/dev/null; then :; else AUTO=1; exec 3</dev/null; fi
 
 frage() { # Variable, Frage, Vorgabe
@@ -48,8 +48,8 @@ geheim() { # Variable, Frage
 
 # ---------- Gemerkte Antworten eines früheren Laufs ----------
 ANGABEN_DATEI=$WORK/angaben
-GEMERKT=(DOKUFY_VMID DOKUFY_STORAGE DOKUFY_BRIDGE DOKUFY_IP DOKUFY_GATEWAY DOKUFY_DNS DOKUFY_CORES DOKUFY_RAM DOKUFY_DISK
-  DOKUFY_DOMAIN DOKUFY_ACME_EMAIL DOKUFY_NAME DOKUFY_EMAIL DOKUFY_PASSWORT DOKUFY_KI DOKUFY_SSHKEY DOKUFY_BACKUP)
+GEMERKT=(TOYPOST_VMID TOYPOST_STORAGE TOYPOST_BRIDGE TOYPOST_IP TOYPOST_GATEWAY TOYPOST_DNS TOYPOST_CORES TOYPOST_RAM TOYPOST_DISK
+  TOYPOST_DOMAIN TOYPOST_ACME_EMAIL TOYPOST_NAME TOYPOST_EMAIL TOYPOST_PASSWORT TOYPOST_KI TOYPOST_SSHKEY TOYPOST_BACKUP)
 if [ -f "$ANGABEN_DATEI" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     key=${line%%=*}
@@ -61,43 +61,43 @@ fi
 
 # ---------- Angaben ----------
 schritt "Angaben (Enter übernimmt den Vorschlag in Klammern)"
-frage DOKUFY_BRIDGE "Netzwerkbrücke" vmbr0
-host_net=$(ip -4 -o addr show dev "$DOKUFY_BRIDGE" 2>/dev/null | awk '{print $4; exit}')
-[ -n "$host_net" ] || fehler "Die Brücke $DOKUFY_BRIDGE hat keine IPv4-Adresse. Andere Brücke angeben: DOKUFY_BRIDGE=vmbrX"
+frage TOYPOST_BRIDGE "Netzwerkbrücke" vmbr0
+host_net=$(ip -4 -o addr show dev "$TOYPOST_BRIDGE" 2>/dev/null | awk '{print $4; exit}')
+[ -n "$host_net" ] || fehler "Die Brücke $TOYPOST_BRIDGE hat keine IPv4-Adresse. Andere Brücke angeben: TOYPOST_BRIDGE=vmbrX"
 vorschlag_ip="$(echo "${host_net%/*}" | cut -d. -f1-3).50/${host_net#*/}"
-frage DOKUFY_IP "Feste IP der VM mit Netzmaske" "$vorschlag_ip"
-[[ "$DOKUFY_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || fehler "IP bitte in der Form 192.168.1.50/24 angeben."
-VM_IP=${DOKUFY_IP%/*}
-frage DOKUFY_GATEWAY "Gateway (Router)" "$(ip -4 route show default | awk '{print $3; exit}')"
-frage DOKUFY_DNS "DNS-Server" "$DOKUFY_GATEWAY"
-frage DOKUFY_DOMAIN "Domain für die Dienste" dokufy.lan
-if [[ "$DOKUFY_DOMAIN" != *.lan && "$DOKUFY_DOMAIN" != *.local && "$DOKUFY_DOMAIN" != *.home.arpa && "$DOKUFY_DOMAIN" != *.internal ]]; then
-  frage DOKUFY_ACME_EMAIL "E-Mail für Let's-Encrypt-Zertifikate (leer = eigene Zertifikate im Heimnetz)" ""
+frage TOYPOST_IP "Feste IP der VM mit Netzmaske" "$vorschlag_ip"
+[[ "$TOYPOST_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || fehler "IP bitte in der Form 192.168.1.50/24 angeben."
+VM_IP=${TOYPOST_IP%/*}
+frage TOYPOST_GATEWAY "Gateway (Router)" "$(ip -4 route show default | awk '{print $3; exit}')"
+frage TOYPOST_DNS "DNS-Server" "$TOYPOST_GATEWAY"
+frage TOYPOST_DOMAIN "Domain für die Dienste" toypost.lan
+if [[ "$TOYPOST_DOMAIN" != *.lan && "$TOYPOST_DOMAIN" != *.local && "$TOYPOST_DOMAIN" != *.home.arpa && "$TOYPOST_DOMAIN" != *.internal ]]; then
+  frage TOYPOST_ACME_EMAIL "E-Mail für Let's-Encrypt-Zertifikate (leer = eigene Zertifikate im Heimnetz)" ""
 fi
-frage DOKUFY_NAME "Dein Name" ""
-[ -n "$DOKUFY_NAME" ] || fehler "Bitte einen Namen angeben (DOKUFY_NAME)."
-frage DOKUFY_EMAIL "Deine E-Mail-Adresse" ""
-[[ "$DOKUFY_EMAIL" == ?*@?*.?* ]] || fehler "Bitte eine gültige E-Mail-Adresse angeben (DOKUFY_EMAIL)."
-if [ -z "${DOKUFY_KI:-}" ] && [ "$AUTO" != 1 ]; then
+frage TOYPOST_NAME "Dein Name" ""
+[ -n "$TOYPOST_NAME" ] || fehler "Bitte einen Namen angeben (TOYPOST_NAME)."
+frage TOYPOST_EMAIL "Deine E-Mail-Adresse" ""
+[[ "$TOYPOST_EMAIL" == ?*@?*.?* ]] || fehler "Bitte eine gültige E-Mail-Adresse angeben (TOYPOST_EMAIL)."
+if [ -z "${TOYPOST_KI:-}" ] && [ "$AUTO" != 1 ]; then
   echo "  KI für die Auswertung:  1) ohne KI, nur Regeln   2) Claude (API-Schlüssel nötig)   3) lokal mit Ollama (16 GB RAM)"
   frage ki_wahl "Auswahl" 1
-  case "$ki_wahl" in 2) DOKUFY_KI=anthropic ;; 3) DOKUFY_KI=ollama ;; *) DOKUFY_KI=mock ;; esac
+  case "$ki_wahl" in 2) TOYPOST_KI=anthropic ;; 3) TOYPOST_KI=ollama ;; *) TOYPOST_KI=mock ;; esac
 fi
-DOKUFY_KI=${DOKUFY_KI:-mock}
-[[ "$DOKUFY_KI" =~ ^(mock|anthropic|ollama)$ ]] || fehler "DOKUFY_KI muss mock, anthropic oder ollama sein."
-if [ "$DOKUFY_KI" = anthropic ]; then
+TOYPOST_KI=${TOYPOST_KI:-mock}
+[[ "$TOYPOST_KI" =~ ^(mock|anthropic|ollama)$ ]] || fehler "TOYPOST_KI muss mock, anthropic oder ollama sein."
+if [ "$TOYPOST_KI" = anthropic ]; then
   geheim ANTHROPIC_API_KEY "Claude-API-Schlüssel (Enter = später eintragen)"
 fi
-frage DOKUFY_SSHKEY "Dein öffentlicher SSH-Schlüssel für die VM (Enter = nur vom Proxmox-Host aus)" ""
-frage DOKUFY_VMID "VM-Nummer" "$(pvesh get /cluster/nextid)"
+frage TOYPOST_SSHKEY "Dein öffentlicher SSH-Schlüssel für die VM (Enter = nur vom Proxmox-Host aus)" ""
+frage TOYPOST_VMID "VM-Nummer" "$(pvesh get /cluster/nextid)"
 storage_vorschlag=$(pvesm status --content images 2>/dev/null | awk 'NR>1 && $3=="active" {print $1}' | grep -x local-lvm || pvesm status --content images | awk 'NR>1 && $3=="active" {print $1; exit}')
-frage DOKUFY_STORAGE "Speicher für die VM-Platte" "$storage_vorschlag"
-frage DOKUFY_CORES "CPU-Kerne" 4
-[ "$DOKUFY_KI" = ollama ] && ram_vorschlag=16384 || ram_vorschlag=8192
-frage DOKUFY_RAM "Arbeitsspeicher in MB" "$ram_vorschlag"
-frage DOKUFY_DISK "Plattengröße in GB" 100
-frage DOKUFY_BACKUP "Tägliches Backup der VM um 02:30 einrichten? (ja/nein)" ja
-DOKUFY_PASSWORT=${DOKUFY_PASSWORT:-$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)}
+frage TOYPOST_STORAGE "Speicher für die VM-Platte" "$storage_vorschlag"
+frage TOYPOST_CORES "CPU-Kerne" 4
+[ "$TOYPOST_KI" = ollama ] && ram_vorschlag=16384 || ram_vorschlag=8192
+frage TOYPOST_RAM "Arbeitsspeicher in MB" "$ram_vorschlag"
+frage TOYPOST_DISK "Plattengröße in GB" 100
+frage TOYPOST_BACKUP "Tägliches Backup der VM um 02:30 einrichten? (ja/nein)" ja
+TOYPOST_PASSWORT=${TOYPOST_PASSWORT:-$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)}
 
 umask 077
 : > "$ANGABEN_DATEI"
@@ -106,13 +106,13 @@ umask 022
 ok "Angaben gespeichert"
 
 # ---------- Quellcode: mitgeliefertes Paket oder GitHub ----------
-TARBALL=$WORK/dokufy-src.tar.gz
-if [ -n "${DOKUFY_QUELLE:-}" ]; then
-  schritt "Dokufy-Paket aus dem Block verwenden"
-  [ -f "$DOKUFY_QUELLE" ] || fehler "Paket $DOKUFY_QUELLE fehlt."
-  [ "$DOKUFY_QUELLE" -ef "$TARBALL" ] || cp "$DOKUFY_QUELLE" "$TARBALL"
+TARBALL=$WORK/toypost-src.tar.gz
+if [ -n "${TOYPOST_QUELLE:-}" ]; then
+  schritt "ToyPost-Paket aus dem Block verwenden"
+  [ -f "$TOYPOST_QUELLE" ] || fehler "Paket $TOYPOST_QUELLE fehlt."
+  [ "$TOYPOST_QUELLE" -ef "$TARBALL" ] || cp "$TOYPOST_QUELLE" "$TARBALL"
 else
-  schritt "Dokufy von GitHub holen ($REPO, $REF)"
+  schritt "ToyPost von GitHub holen ($REPO, $REF)"
   hole_quellcode() {
     local auth=()
     [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
@@ -132,44 +132,44 @@ tar xzf "$TARBALL" -O --wildcards '*/deploy/proxmox/vm-setup.sh' > "$WORK/vm-set
 ok "Quellcode geladen ($(du -h "$TARBALL" | cut -f1))"
 
 # ---------- SSH-Schlüssel des Hosts für die VM ----------
-[ -f "$WORK/id_ed25519" ] || ssh-keygen -q -t ed25519 -N '' -C "proxmox-dokufy-install" -f "$WORK/id_ed25519"
-{ cat "$WORK/id_ed25519.pub"; [ -n "$DOKUFY_SSHKEY" ] && echo "$DOKUFY_SSHKEY"; } > "$WORK/ssh-keys.pub"
+[ -f "$WORK/id_ed25519" ] || ssh-keygen -q -t ed25519 -N '' -C "proxmox-toypost-install" -f "$WORK/id_ed25519"
+{ cat "$WORK/id_ed25519.pub"; [ -n "$TOYPOST_SSHKEY" ] && echo "$TOYPOST_SSHKEY"; } > "$WORK/ssh-keys.pub"
 SSH_OPTS=(-i "$WORK/id_ed25519" -o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=30
   -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$WORK/known_hosts")
 vm_ssh() { ssh -n "${SSH_OPTS[@]}" "$VM_USER@$VM_IP" "$@"; }
 
 # ---------- VM ----------
-VMID=$DOKUFY_VMID
+VMID=$TOYPOST_VMID
 if qm status "$VMID" >/dev/null 2>&1; then
   schritt "VM $VMID ist schon vorhanden"
   name=$(qm config "$VMID" | awk '/^name:/ {print $2}')
-  [ "$name" = dokufy ] || fehler "VM $VMID heißt \"$name\", nicht \"dokufy\". Andere Nummer wählen: DOKUFY_VMID=..."
+  [ "$name" = toypost ] || fehler "VM $VMID heißt \"$name\", nicht \"toypost\". Andere Nummer wählen: TOYPOST_VMID=..."
   qm status "$VMID" | grep -q running || qm start "$VMID"
   ok "VM läuft"
 else
   schritt "VM $VMID anlegen"
   if ping -c1 -W1 "$VM_IP" >/dev/null 2>&1; then
-    fehler "Die Adresse $VM_IP ist schon belegt. Andere IP wählen: DOKUFY_IP=... oder Zeile in $ANGABEN_DATEI ändern."
+    fehler "Die Adresse $VM_IP ist schon belegt. Andere IP wählen: TOYPOST_IP=... oder Zeile in $ANGABEN_DATEI ändern."
   fi
   mkdir -p "$IMAGE_DIR"
   image="$IMAGE_DIR/$(basename "$IMAGE_URL")"
   wget -q --show-progress -N -P "$IMAGE_DIR" "$IMAGE_URL"
   ok "Debian-13-Cloud-Image bereit"
-  qm create "$VMID" --name dokufy --memory "$DOKUFY_RAM" --cores "$DOKUFY_CORES" --cpu host \
-    --net0 "virtio,bridge=$DOKUFY_BRIDGE" --ostype l26 --scsihw virtio-scsi-single \
+  qm create "$VMID" --name toypost --memory "$TOYPOST_RAM" --cores "$TOYPOST_CORES" --cpu host \
+    --net0 "virtio,bridge=$TOYPOST_BRIDGE" --ostype l26 --scsihw virtio-scsi-single \
     --agent enabled=1 --serial0 socket --vga serial0 \
-    --description "Dokufy: Paperless-ngx, Nextcloud, n8n. Angelegt am $(date +%F) mit proxmox-install.sh"
-  qm disk import "$VMID" "$image" "$DOKUFY_STORAGE" >/dev/null
+    --description "ToyPost: Paperless-ngx, Nextcloud, n8n. Angelegt am $(date +%F) mit proxmox-install.sh"
+  qm disk import "$VMID" "$image" "$TOYPOST_STORAGE" >/dev/null
   disk=$(qm config "$VMID" | awk '/^unused0:/ {print $2}')
   [ -n "$disk" ] || fehler "Die importierte Platte wurde nicht gefunden (qm config $VMID)."
   qm set "$VMID" --scsi0 "$disk,discard=on,iothread=1,ssd=1" >/dev/null
-  qm resize "$VMID" scsi0 "${DOKUFY_DISK}G" >/dev/null
-  qm set "$VMID" --ide2 "$DOKUFY_STORAGE:cloudinit" --boot order=scsi0 >/dev/null
+  qm resize "$VMID" scsi0 "${TOYPOST_DISK}G" >/dev/null
+  qm set "$VMID" --ide2 "$TOYPOST_STORAGE:cloudinit" --boot order=scsi0 >/dev/null
   qm set "$VMID" --ciuser "$VM_USER" --sshkeys "$WORK/ssh-keys.pub" \
-    --ipconfig0 "ip=$DOKUFY_IP,gw=$DOKUFY_GATEWAY" --nameserver "$DOKUFY_DNS" >/dev/null
+    --ipconfig0 "ip=$TOYPOST_IP,gw=$TOYPOST_GATEWAY" --nameserver "$TOYPOST_DNS" >/dev/null
   qm set "$VMID" --onboot 1 >/dev/null
   qm start "$VMID"
-  ok "VM $VMID gestartet: $DOKUFY_CORES Kerne, $DOKUFY_RAM MB RAM, $DOKUFY_DISK GB auf $DOKUFY_STORAGE, IP $VM_IP"
+  ok "VM $VMID gestartet: $TOYPOST_CORES Kerne, $TOYPOST_RAM MB RAM, $TOYPOST_DISK GB auf $TOYPOST_STORAGE, IP $VM_IP"
 fi
 
 schritt "Warte auf die VM ($VM_IP)"
@@ -181,26 +181,26 @@ vm_ssh true || fehler "Keine SSH-Verbindung zu $VM_IP. Stimmen IP, Gateway und B
 ok "VM erreichbar"
 
 # ---------- Einrichtung in der VM ----------
-schritt "Dokufy in der VM einrichten"
+schritt "ToyPost in der VM einrichten"
 umask 077
 cat > "$WORK/vm-angaben.env" <<EOF
-DOMAIN=$DOKUFY_DOMAIN
-ADMIN_NAME=$DOKUFY_NAME
-ADMIN_EMAIL=$DOKUFY_EMAIL
-ADMIN_PASSWORD=$DOKUFY_PASSWORT
-ACME_EMAIL=${DOKUFY_ACME_EMAIL:-}
-AI_PROVIDER=$DOKUFY_KI
+DOMAIN=$TOYPOST_DOMAIN
+ADMIN_NAME=$TOYPOST_NAME
+ADMIN_EMAIL=$TOYPOST_EMAIL
+ADMIN_PASSWORD=$TOYPOST_PASSWORT
+ACME_EMAIL=${TOYPOST_ACME_EMAIL:-}
+AI_PROVIDER=$TOYPOST_KI
 ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
 OLLAMA_MODEL=${OLLAMA_MODEL:-qwen3:8b}
 EOF
 umask 022
 scp -q "${SSH_OPTS[@]}" "$TARBALL" "$WORK/vm-setup.sh" "$WORK/vm-angaben.env" "$VM_USER@$VM_IP:/tmp/"
 rm -f "$WORK/vm-angaben.env"
-vm_ssh "sudo bash /tmp/vm-setup.sh /tmp/dokufy-src.tar.gz /tmp/vm-angaben.env $VM_USER" \
+vm_ssh "sudo bash /tmp/vm-setup.sh /tmp/toypost-src.tar.gz /tmp/vm-angaben.env $VM_USER" \
   || fehler "Die Einrichtung in der VM ist abgebrochen (Meldung oben). Nach dem Beheben dieses Skript einfach erneut starten."
 
 # ---------- Backup ----------
-if [[ "$DOKUFY_BACKUP" =~ ^[jJyY] ]]; then
+if [[ "$TOYPOST_BACKUP" =~ ^[jJyY] ]]; then
   schritt "Backup"
   if pvesh get /cluster/backup --output-format json 2>/dev/null | tr -d ' ' | grep -q "\"vmid\":\"$VMID\""; then
     ok "Backup-Job für VM $VMID ist schon vorhanden"
@@ -217,25 +217,25 @@ if [[ "$DOKUFY_BACKUP" =~ ^[jJyY] ]]; then
 fi
 
 # ---------- Zusammenfassung ----------
-passwort=$(vm_ssh "grep -m1 '^ADMIN_PASSWORD=' /opt/dokufy/.env | cut -d= -f2-")
+passwort=$(vm_ssh "grep -m1 '^ADMIN_PASSWORD=' /opt/toypost/.env | cut -d= -f2-")
 umask 077
 cat > "$WORK/zugaenge.txt" <<EOF
-Dokufy auf Proxmox, VM $VMID ($VM_IP), eingerichtet am $(date '+%F %H:%M')
+ToyPost auf Proxmox, VM $VMID ($VM_IP), eingerichtet am $(date '+%F %H:%M')
 
-Paperless   https://paperless.$DOKUFY_DOMAIN
-Nextcloud   https://cloud.$DOKUFY_DOMAIN
-n8n         https://n8n.$DOKUFY_DOMAIN   (Inhaber beim ersten Aufruf anlegen)
-Dokufy-API  https://dokufy.$DOKUFY_DOMAIN
+Paperless   https://paperless.$TOYPOST_DOMAIN
+Nextcloud   https://cloud.$TOYPOST_DOMAIN
+n8n         https://n8n.$TOYPOST_DOMAIN   (Inhaber beim ersten Aufruf anlegen)
+ToyPost-API  https://toypost.$TOYPOST_DOMAIN
 
-Benutzer    admin   (Dokufy-Konto: $DOKUFY_EMAIL)
+Benutzer    admin   (ToyPost-Konto: $TOYPOST_EMAIL)
 Passwort    $passwort
 
 Eintrag für Router-DNS oder hosts-Datei:
-$VM_IP  paperless.$DOKUFY_DOMAIN cloud.$DOKUFY_DOMAIN n8n.$DOKUFY_DOMAIN dokufy.$DOKUFY_DOMAIN
+$VM_IP  paperless.$TOYPOST_DOMAIN cloud.$TOYPOST_DOMAIN n8n.$TOYPOST_DOMAIN toypost.$TOYPOST_DOMAIN
 
 Anmelden an der VM vom Proxmox-Host:  ssh -i $WORK/id_ed25519 $VM_USER@$VM_IP
 EOF
-[ -n "$DOKUFY_SSHKEY" ] && echo "Anmelden an der VM von deinem Rechner:  ssh $VM_USER@$VM_IP" >> "$WORK/zugaenge.txt"
+[ -n "$TOYPOST_SSHKEY" ] && echo "Anmelden an der VM von deinem Rechner:  ssh $VM_USER@$VM_IP" >> "$WORK/zugaenge.txt"
 umask 022
 schritt "Fertig"
 cat "$WORK/zugaenge.txt"

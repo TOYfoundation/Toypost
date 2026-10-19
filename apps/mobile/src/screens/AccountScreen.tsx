@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { PLANS, storageLimitBytes } from '@dokufy/shared';
+import { PLANS, storageLimitBytes } from '@toypost/shared';
 import { Button, Card, Divider, Notice, Row, Screen, Section } from '../components/base.tsx';
 import { useNav } from '../nav.ts';
 import { useSession } from '../session.tsx';

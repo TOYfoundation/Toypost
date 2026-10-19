@@ -21,7 +21,7 @@ const map: Record<string, string> = {
   'expo-secure-store': resolve(here, 'shims/expo.tsx'),
   'expo-constants': resolve(here, 'shims/constants.ts'),
   'react-native-qrcode-svg': resolve(here, 'shims/qrcode.ts'),
-  '@dokufy/shared': resolve(root, 'packages/shared/src/index.ts'),
+  '@toypost/shared': resolve(root, 'packages/shared/src/index.ts'),
 };
 
 const result = await Bun.build({
@@ -32,7 +32,7 @@ const result = await Bun.build({
   define: { 'process.env.EXPO_PUBLIC_API_URL': 'undefined', 'process.env.NODE_ENV': '"development"' },
   plugins: [
     {
-      name: 'dokufy-preview-shims',
+      name: 'toypost-preview-shims',
       setup(build) {
         build.onResolve({ filter: /.*/ }, (args) => {
           if (map[args.path]) return { path: map[args.path] };
@@ -56,7 +56,7 @@ mkdirSync(out, { recursive: true });
 writeFileSync(
   resolve(out, 'index.html'),
   `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dokufy Vorschau</title>
+<title>ToyPost Vorschau</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>html,body,#root{margin:0;height:100%;}body{-webkit-font-smoothing:antialiased;font-family:'Schibsted Grotesk',system-ui,sans-serif}@keyframes rn-spin{to{transform:rotate(360deg)}}input,textarea{font:inherit}</style>
 </head><body><div id="root"></div><script src="./main.js"></script></body></html>`,

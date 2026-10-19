@@ -20,9 +20,9 @@ export interface Config {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const production = env.NODE_ENV === 'production';
   const selfHosted = ['1', 'true', 'ja'].includes(String(env.SELF_HOSTED ?? '').toLowerCase());
-  const secret = env.DOKUFY_SECRET ?? (production ? '' : 'nur-fuer-die-entwicklung-nicht-produktiv-nutzen');
+  const secret = env.TOYPOST_SECRET ?? (production ? '' : 'nur-fuer-die-entwicklung-nicht-produktiv-nutzen');
   if (secret.length < 32) {
-    throw new Error('DOKUFY_SECRET fehlt oder ist kürzer als 32 Zeichen.');
+    throw new Error('TOYPOST_SECRET fehlt oder ist kürzer als 32 Zeichen.');
   }
   const aiProvider = (env.AI_PROVIDER ?? 'mock') as Config['aiProvider'];
   if (!['mock', 'anthropic', 'ollama'].includes(aiProvider)) {
@@ -36,7 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     publicUrl: env.PUBLIC_URL ?? `http://localhost:${env.PORT ?? 8787}`,
     appOrigins: (env.APP_ORIGIN ?? '*').split(',').map((s) => s.trim()),
     secret,
-    databasePath: env.DATABASE_PATH ?? './data/dokufy.sqlite',
+    databasePath: env.DATABASE_PATH ?? './data/toypost.sqlite',
     filesPath: env.FILES_PATH ?? './data/files',
     aiProvider,
     anthropicApiKey: env.ANTHROPIC_API_KEY ?? '',

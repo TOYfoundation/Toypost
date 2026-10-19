@@ -47,7 +47,7 @@ export function TabBar({ active, onSelect, vertical }: { active: TabKey; onSelec
   if (vertical) {
     return (
       <View style={[s.side, { paddingTop: insets.top + space.xl }]} accessibilityRole="tablist">
-        <Text style={s.brand}>Dokufy</Text>
+        <Text style={s.brand}>ToyPost</Text>
         {TABS.map((t) => {
           const on = t.key === active;
           return (

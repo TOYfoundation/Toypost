@@ -13,7 +13,7 @@ import { MockProvider, type AnalyzeInput } from '../src/ai/provider.ts';
 import { demoLetterText } from '../src/shared.ts';
 
 const TODAY = '2026-10-19';
-const tmp = mkdtempSync(join(tmpdir(), 'dokufy-test-'));
+const tmp = mkdtempSync(join(tmpdir(), 'toypost-test-'));
 let base = '';
 let server: Server;
 let ctx: ReturnType<typeof createApp>['ctx'];
@@ -33,7 +33,7 @@ class TestAi extends MockProvider {
 
 before(async () => {
   const config = loadConfig({
-    DOKUFY_SECRET: 'test-secret-test-secret-test-secret-1234',
+    TOYPOST_SECRET: 'test-secret-test-secret-test-secret-1234',
     DATABASE_PATH: ':memory:',
     FILES_PATH: join(tmp, 'files'),
     PUBLIC_URL: 'http://127.0.0.1:0',
@@ -191,12 +191,12 @@ test('Upgrade auf Team: Kontingent wird sofort angehoben, n8n erhält signierte 
     let body = '';
     req.on('data', (c) => (body += c));
     req.on('end', () => {
-      received.push({ sig: String(req.headers['x-dokufy-signature']), body });
+      received.push({ sig: String(req.headers['x-toypost-signature']), body });
       res.end('ok');
     });
   });
   await new Promise<void>((r) => hook.listen(0, '127.0.0.1', r));
-  const hookUrl = `http://127.0.0.1:${(hook.address() as AddressInfo).port}/webhook/dokufy`;
+  const hookUrl = `http://127.0.0.1:${(hook.address() as AddressInfo).port}/webhook/toypost`;
   const put = await call('PUT', '/v1/integrations/n8n', { eventsUrl: hookUrl }, token);
   assert.equal(put.data.n8n.connected, true);
 
@@ -212,12 +212,12 @@ test('Upgrade auf Team: Kontingent wird sofort angehoben, n8n erhält signierte 
 test('Paperless-Webhook: Signatur, Verarbeitung, Duplikat', async () => {
   const secret = (await call('GET', '/v1/integrations/webhook-secret', undefined, token)).data.secret;
   const body = JSON.stringify({ documentId: 42, content: demoLetterText('handy', TODAY), title: 'Vertrag', created: '2026-10-07' });
-  const bad = await call('POST', `/v1/hooks/paperless/${accountId}`, body, undefined, { 'x-dokufy-signature': 'falsch' });
+  const bad = await call('POST', `/v1/hooks/paperless/${accountId}`, body, undefined, { 'x-toypost-signature': 'falsch' });
   assert.equal(bad.status, 401);
-  const ok = await call('POST', `/v1/hooks/paperless/${accountId}`, body, undefined, { 'x-dokufy-signature': webhookSignature(secret, body) });
+  const ok = await call('POST', `/v1/hooks/paperless/${accountId}`, body, undefined, { 'x-toypost-signature': webhookSignature(secret, body) });
   assert.equal(ok.status, 200, JSON.stringify(ok.data));
   assert.ok(ok.data.caseId);
-  const again = await call('POST', `/v1/hooks/paperless/${accountId}`, body, undefined, { 'x-dokufy-signature': webhookSignature(secret, body) });
+  const again = await call('POST', `/v1/hooks/paperless/${accountId}`, body, undefined, { 'x-toypost-signature': webhookSignature(secret, body) });
   assert.equal(again.data.duplicate, true);
 });
 

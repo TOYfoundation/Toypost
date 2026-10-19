@@ -1,5 +1,5 @@
 {
-  "name": "@dokufy/mobile",
+  "name": "@toypost/mobile",
   "version": "0.1.0",
   "private": true,
   "main": "expo-router/entry",
@@ -13,7 +13,7 @@
     "fix-versions": "expo install --fix"
   },
   "dependencies": {
-    "@dokufy/shared": "0.1.0",
+    "@toypost/shared": "0.1.0",
     "@expo-google-fonts/schibsted-grotesk": "^0.4.0",
     "@expo/vector-icons": "^15.0.0",
     "expo": "~54.0.0",

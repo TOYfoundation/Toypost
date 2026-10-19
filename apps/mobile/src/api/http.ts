@@ -1,7 +1,7 @@
 import type { Api, IntegrationKind } from './types.ts';
 import { ApiError } from './types.ts';
 
-/** Verbindung zur Dokufy-API. */
+/** Verbindung zur ToyPost-API. */
 export class HttpApi implements Api {
   readonly mode = 'live' as const;
   private readonly baseUrl: string;

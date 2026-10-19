@@ -1,5 +1,5 @@
 /**
- * Legt ein Demo-Konto mit Beispiel-Post an: demo@dokufy.app / dokufy-demo-2026
+ * Legt ein Demo-Konto mit Beispiel-Post an: demo@toypost.app / toypost-demo-2026
  * Die Briefe laufen durch dieselbe Verarbeitung wie echte Post.
  */
 import { loadConfig } from './config.ts';
@@ -13,14 +13,14 @@ const config = loadConfig();
 const { ctx } = createApp(config);
 const { db } = ctx;
 
-const email = 'demo@dokufy.app';
+const email = 'demo@toypost.app';
 const existing = db.prepare('SELECT account_id FROM users WHERE email = ?').get(email) as { account_id: string } | undefined;
 if (existing) {
   console.log(`Demo-Konto gibt es schon (${email}).`);
   process.exit(0);
 }
 
-const { accountId } = createAccountWithOwner(db, { name: 'Alex Beispiel', email, password: 'dokufy-demo-2026', accountName: 'Haushalt Beispiel' });
+const { accountId } = createAccountWithOwner(db, { name: 'Alex Beispiel', email, password: 'toypost-demo-2026', accountName: 'Haushalt Beispiel' });
 db.prepare(`UPDATE accounts SET plan = 'pro' WHERE id = ?`).run(accountId);
 addPurchasedCredits(db, accountId, 100, 'seed');
 
@@ -46,4 +46,4 @@ for (const letter of DEMO_LETTERS) {
   );
 }
 await ctx.delivery.settle();
-console.log(`Demo-Konto angelegt: ${email} / dokufy-demo-2026 (${DEMO_LETTERS.length} Vorgänge)`);
+console.log(`Demo-Konto angelegt: ${email} / toypost-demo-2026 (${DEMO_LETTERS.length} Vorgänge)`);

@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Dokufy",
-    "slug": "dokufy",
-    "scheme": "dokufy",
+    "name": "ToyPost",
+    "slug": "toypost",
+    "scheme": "toypost",
     "version": "0.1.0",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "de.dokufy.app",
+      "bundleIdentifier": "de.toypost.app",
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Dokufy nutzt die Kamera, um Briefe zu scannen.",
-        "NSPhotoLibraryUsageDescription": "Dokufy liest Fotos von Briefen aus deiner Mediathek."
+        "NSCameraUsageDescription": "ToyPost nutzt die Kamera, um Briefe zu scannen.",
+        "NSPhotoLibraryUsageDescription": "ToyPost liest Fotos von Briefen aus deiner Mediathek."
       }
     },
     "android": {
-      "package": "de.dokufy.app",
+      "package": "de.toypost.app",
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -35,8 +35,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Dokufy nutzt die Kamera, um Briefe zu scannen.",
-          "photosPermission": "Dokufy liest Fotos von Briefen aus deiner Mediathek."
+          "cameraPermission": "ToyPost nutzt die Kamera, um Briefe zu scannen.",
+          "photosPermission": "ToyPost liest Fotos von Briefen aus deiner Mediathek."
         }
       ]
     ],

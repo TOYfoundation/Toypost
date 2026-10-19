@@ -6,7 +6,7 @@ import type { PaperlessConfig } from './paperless.ts';
 import type { NextcloudConfig } from './nextcloud.ts';
 
 export interface N8nConfig {
-  /** Webhook-URL eines n8n-Workflows, an den Dokufy Ereignisse sendet */
+  /** Webhook-URL eines n8n-Workflows, an den ToyPost Ereignisse sendet */
   eventsUrl: string;
 }
 
@@ -93,7 +93,7 @@ export function validateIntegration(kind: IntegrationKind, body: any): Integrati
         user: str('user'),
         appPassword: str('appPassword'),
         calendar: str('calendar', 'personal'),
-        folder: str('folder', 'Dokufy'),
+        folder: str('folder', 'ToyPost'),
       };
     case 'n8n':
       return { eventsUrl: url('eventsUrl') };

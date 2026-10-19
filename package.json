@@ -1,8 +1,8 @@
 {
-  "name": "dokufy",
+  "name": "toypost",
   "private": true,
   "version": "0.1.0",
-  "description": "Dokufy – Korrespondenz-Assistent auf Basis von Paperless-ngx, Nextcloud und n8n",
+  "description": "ToyPost – Korrespondenz-Assistent auf Basis von Paperless-ngx, Nextcloud und n8n",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -11,10 +11,10 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "api": "npm run dev --workspace @dokufy/api",
-    "app": "npm run start --workspace @dokufy/mobile",
-    "app:web": "npm run web --workspace @dokufy/mobile",
-    "test": "npm run test --workspace @dokufy/shared && npm run test --workspace @dokufy/api",
+    "api": "npm run dev --workspace @toypost/api",
+    "app": "npm run start --workspace @toypost/mobile",
+    "app:web": "npm run web --workspace @toypost/mobile",
+    "test": "npm run test --workspace @toypost/shared && npm run test --workspace @toypost/api",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { daysBetween, formatDateDe, formatEuro, type CaseSummary, type Deadline } from '@dokufy/shared';
+import { daysBetween, formatDateDe, formatEuro, type CaseSummary, type Deadline } from '@toypost/shared';
 import { radius, space, type, urgencyColors, urgencyOf, usePalette, useStyles, type Palette } from '../theme.ts';
 import { Button, Icon } from './base.tsx';
 

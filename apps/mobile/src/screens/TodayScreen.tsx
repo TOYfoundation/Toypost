@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatDateDe, shouldWarn, toUnits, type CaseSummary } from '@dokufy/shared';
+import { formatDateDe, shouldWarn, toUnits, type CaseSummary } from '@toypost/shared';
 import { Button, Card, Divider, Empty, Loading, Notice, Screen, Section } from '../components/base.tsx';
 import { CaseCard, CaseRow } from '../components/case.tsx';
 import { useNav } from '../nav.ts';
@@ -133,7 +133,7 @@ export function TodayScreen() {
           {count === 0 && !data.waiting.length && !data.newInfo.length ? (
             <Empty
               title="Noch keine Post"
-              text="Fotografiere deinen ersten Brief oder verbinde Paperless, dann sortiert Dokufy automatisch."
+              text="Fotografiere deinen ersten Brief oder verbinde Paperless, dann sortiert ToyPost automatisch."
               action={<Button icon="camera" label="Brief erfassen" onPress={() => nav.go('/scannen')} />}
             />
           ) : null}

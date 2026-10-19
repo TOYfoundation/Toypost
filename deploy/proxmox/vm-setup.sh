@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Dokufy: richtet eine frische Debian-VM komplett ein (Docker, Dateien, .env, Dienste, Verknüpfungen).
+# ToyPost: richtet eine frische Debian-VM komplett ein (Docker, Dateien, .env, Dienste, Verknüpfungen).
 # Wird von proxmox-install.sh auf dem Proxmox-Host aufgerufen; von Hand:
-#   sudo bash vm-setup.sh <dokufy-src.tar.gz> <angaben.env> <benutzer>
+#   sudo bash vm-setup.sh <toypost-src.tar.gz> <angaben.env> <benutzer>
 # Darf mehrfach laufen: vorhandene Einstellungen (.env) und Daten bleiben erhalten.
 set -euo pipefail
 
 TARBALL=$1
 ANGABEN=$2
-RUNUSER_NAME=${3:-dokufy}
-BASE=${DOKUFY_BASE:-/opt/dokufy}
+RUNUSER_NAME=${3:-toypost}
+BASE=${TOYPOST_BASE:-/opt/toypost}
 
 schritt() { printf '\n\033[1;34m▸ %s\033[0m\n' "$*"; }
 ok()      { printf '  \033[32m✓\033[0m %s\n' "$*"; }
@@ -61,7 +61,7 @@ usermod -aG docker "$RUNUSER_NAME"
 ok "Docker $(docker compose version --short 2>/dev/null || echo bereit)"
 
 # ---------- 2. Dateien ----------
-schritt "Dokufy-Dateien nach $BASE"
+schritt "ToyPost-Dateien nach $BASE"
 mkdir -p "$BASE"
 rm -rf "$BASE/src.neu"
 mkdir -p "$BASE/src.neu"
@@ -105,7 +105,7 @@ OLLAMA_MODEL=$(sauber "${A[OLLAMA_MODEL]:-qwen3:8b}")
 COMPOSE_PROFILES=$profile
 
 # --- Geheimnisse, automatisch erzeugt; nicht weitergeben ---
-DOKUFY_SECRET=$(zufall 32)
+TOYPOST_SECRET=$(zufall 32)
 PAPERLESS_SECRET_KEY=$(zufall 32)
 PAPERLESS_DB_PASSWORD=$(zufall 16)
 NEXTCLOUD_DB_PASSWORD=$(zufall 16)
@@ -139,7 +139,7 @@ if [ "$(env_wert AI_PROVIDER)" = ollama ]; then
 fi
 
 # Wöchentlicher Paperless-Export als lesbare Zweitsicherung
-cat > /etc/cron.d/dokufy-export <<EOF
+cat > /etc/cron.d/toypost-export <<EOF
 0 3 * * 0 $RUNUSER_NAME cd $BASE && docker compose exec -T paperless document_exporter ../export -d >/dev/null 2>&1
 EOF
 ok "Wöchentlicher Paperless-Export nach $BASE/data/export eingeplant"

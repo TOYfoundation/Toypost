@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { formatEuro, priceFor, yearlySavingPercent, type PlanId } from '@dokufy/shared';
+import { formatEuro, priceFor, yearlySavingPercent, type PlanId } from '@toypost/shared';
 import { Button, Chip, Icon, Loading, Notice, Screen } from '../components/base.tsx';
 import { useNav } from '../nav.ts';
 import { useLoad, useSession } from '../session.tsx';
@@ -138,7 +138,7 @@ export function PlansScreen() {
               ) : null}
               <View style={{ marginTop: space.md }}>
                 {isCurrent ? null : plan.id === 'free' ? null : plan.custom ? (
-                  <Button variant="secondary" label="Angebot anfragen" onPress={() => Linking.openURL('mailto:vertrieb@dokufy.app?subject=Dokufy%20Enterprise')} />
+                  <Button variant="secondary" label="Angebot anfragen" onPress={() => Linking.openURL('mailto:vertrieb@toypost.app?subject=ToyPost%20Enterprise')} />
                 ) : (
                   <Button label={`${plan.name} wählen`} busy={busy === plan.id} onPress={() => choose(plan.id as 'pro' | 'team')} />
                 )}

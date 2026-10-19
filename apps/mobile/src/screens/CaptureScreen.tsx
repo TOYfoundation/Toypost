@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { formatDateDe } from '@dokufy/shared';
+import { formatDateDe } from '@toypost/shared';
 import { Button, Card, Field, Icon, Notice, Screen, Section, type IconName } from '../components/base.tsx';
 import { useNav } from '../nav.ts';
 import { useSession } from '../session.tsx';
@@ -88,7 +88,7 @@ export function CaptureScreen() {
   const fromCamera = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      setError('Ohne Kamerazugriff kann Dokufy keine Briefe fotografieren. Erlaube den Zugriff in den Einstellungen oder wähle eine Datei.');
+      setError('Ohne Kamerazugriff kann ToyPost keine Briefe fotografieren. Erlaube den Zugriff in den Einstellungen oder wähle eine Datei.');
       return;
     }
     const shot = await ImagePicker.launchCameraAsync({ quality: 0.7, base64: true, allowsMultipleSelection: false });
@@ -121,7 +121,7 @@ export function CaptureScreen() {
 
   return (
     <Screen title="Post erfassen">
-      <Text style={s.lead}>Dokufy liest das Schreiben, erkennt Absender, Frist und Betrag und legt es im passenden Vorgang ab.</Text>
+      <Text style={s.lead}>ToyPost liest das Schreiben, erkennt Absender, Frist und Betrag und legt es im passenden Vorgang ab.</Text>
 
       {result ? (
         result.queued ? (
@@ -145,7 +145,7 @@ export function CaptureScreen() {
       {busy ? <Notice tone="info">Wird gelesen und eingeordnet …</Notice> : null}
 
       <View style={{ gap: space.md, marginTop: space.lg }}>
-        <Option icon="camera" title="Brief fotografieren" text="Mehrseitig: jede Seite einzeln, Dokufy fügt sie zusammen" onPress={fromCamera} />
+        <Option icon="camera" title="Brief fotografieren" text="Mehrseitig: jede Seite einzeln, ToyPost fügt sie zusammen" onPress={fromCamera} />
         <Option icon="file" title="PDF oder Bild wählen" text="Aus Dateien, Downloads oder der Cloud" onPress={fromFile} />
         <Option icon="clipboard" title="Text einfügen" text="Für E-Mails und Schreiben aus Portalen" onPress={() => setPasting((v) => !v)} />
       </View>

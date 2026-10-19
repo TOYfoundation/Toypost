@@ -1,8 +1,8 @@
-# Dokufy ohne App: Paperless-ngx, Nextcloud, n8n und die Dokufy-Engine in einer VM.
-# Liegt in /opt/dokufy/compose.yml. Werte kommen aus /opt/dokufy/.env.
+# ToyPost ohne App: Paperless-ngx, Nextcloud, n8n und die ToyPost-Engine in einer VM.
+# Liegt in /opt/toypost/compose.yml. Werte kommen aus /opt/toypost/.env.
 # Start: docker compose up -d --build     Lokale KI zusätzlich: docker compose --profile ollama up -d
 
-name: dokufy
+name: toypost
 
 services:
   # ---------- Eingang: Reverse Proxy mit HTTPS ----------
@@ -17,8 +17,8 @@ services:
       - caddy-data:/data
       - caddy-config:/config
 
-  # ---------- Dokufy-Engine: Auswertung, Fristen, Vorgänge, Entwürfe ----------
-  dokufy:
+  # ---------- ToyPost-Engine: Auswertung, Fristen, Vorgänge, Entwürfe ----------
+  toypost:
     build:
       context: ./src
       dockerfile: apps/api/Dockerfile
@@ -26,14 +26,14 @@ services:
     environment:
       NODE_ENV: production
       SELF_HOSTED: "true"
-      DOKUFY_SECRET: ${DOKUFY_SECRET}
-      PUBLIC_URL: https://dokufy.${DOMAIN}
+      TOYPOST_SECRET: ${TOYPOST_SECRET}
+      PUBLIC_URL: https://toypost.${DOMAIN}
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OLLAMA_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:8b}
     ports: ["127.0.0.1:8787:8787"]
-    volumes: [dokufy-data:/data]
+    volumes: [toypost-data:/data]
 
   # ---------- Paperless-ngx: Eingang, Texterkennung, Archiv ----------
   paperless-db:
@@ -77,7 +77,7 @@ services:
       PAPERLESS_DBPASS: ${PAPERLESS_DB_PASSWORD}
       PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
       PAPERLESS_URL: https://paperless.${DOMAIN}
-      # "paperless" und "localhost": Aufrufe von Dokufy im Docker-Netz und vom Einrichtungsskript
+      # "paperless" und "localhost": Aufrufe von ToyPost im Docker-Netz und vom Einrichtungsskript
       PAPERLESS_ALLOWED_HOSTS: paperless.${DOMAIN},paperless,localhost,127.0.0.1
       PAPERLESS_ADMIN_USER: ${ADMIN_USER}
       PAPERLESS_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
@@ -87,7 +87,7 @@ services:
       PAPERLESS_TIKA_ENABLED: "1"
       PAPERLESS_TIKA_ENDPOINT: http://tika:9998
       PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
-      # Webhooks an Dokufy im internen Netz auf Port 8787 zulassen
+      # Webhooks an ToyPost im internen Netz auf Port 8787 zulassen
       PAPERLESS_WEBHOOKS_ALLOWED_PORTS: "80,443,8787"
       # Gleicher Benutzer wie Nextcloud (www-data), damit der gemeinsame Eingangsordner beschreibbar ist
       USERMAP_UID: "33"
@@ -171,7 +171,7 @@ services:
 volumes:
   caddy-data:
   caddy-config:
-  dokufy-data:
+  toypost-data:
   paperless-db:
   redis-data:
   paperless-data:

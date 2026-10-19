@@ -5,8 +5,8 @@ import { HttpApi } from './api/http.ts';
 import { DemoApi } from './api/demo.ts';
 import { storage } from './storage.ts';
 
-const TOKEN_KEY = 'dokufy.token';
-const MODE_KEY = 'dokufy.mode';
+const TOKEN_KEY = 'toypost.token';
+const MODE_KEY = 'toypost.mode';
 
 export const API_URL: string =
   process.env.EXPO_PUBLIC_API_URL ?? (Constants.expoConfig?.extra as { apiUrl?: string } | undefined)?.apiUrl ?? 'http://localhost:8787';

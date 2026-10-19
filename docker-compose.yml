@@ -1,22 +1,22 @@
-# Komplette Testumgebung: Dokufy-API, Paperless-ngx, Nextcloud und n8n.
+# Komplette Testumgebung: ToyPost-API, Paperless-ngx, Nextcloud und n8n.
 # Start:  cp .env.example .env  (Werte setzen)  →  docker compose up -d
 # Für Produktion: eigene Datenbanken (Postgres) für Paperless und Nextcloud, TLS-Proxy davor, Backups.
 
 services:
-  dokufy-api:
+  toypost-api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
-      DOKUFY_SECRET: ${DOKUFY_SECRET:?DOKUFY_SECRET in .env setzen}
-      PUBLIC_URL: ${DOKUFY_PUBLIC_URL:-http://localhost:8787}
-      APP_ORIGIN: ${DOKUFY_APP_ORIGIN:-*}
+      TOYPOST_SECRET: ${TOYPOST_SECRET:?TOYPOST_SECRET in .env setzen}
+      PUBLIC_URL: ${TOYPOST_PUBLIC_URL:-http://localhost:8787}
+      APP_ORIGIN: ${TOYPOST_APP_ORIGIN:-*}
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-dev}
       NODE_ENV: ${NODE_ENV:-development}
     ports: ["8787:8787"]
-    volumes: [dokufy-data:/data]
+    volumes: [toypost-data:/data]
     restart: unless-stopped
 
   redis:
@@ -62,9 +62,9 @@ services:
       GENERIC_TIMEZONE: Europe/Berlin
       N8N_SECURE_COOKIE: "false"
       NODE_FUNCTION_ALLOW_BUILTIN: crypto
-      DOKUFY_API_URL: http://dokufy-api:8787
-      DOKUFY_ACCOUNT_ID: ${DOKUFY_ACCOUNT_ID:-}
-      DOKUFY_WEBHOOK_SECRET: ${DOKUFY_WEBHOOK_SECRET:-}
+      TOYPOST_API_URL: http://toypost-api:8787
+      TOYPOST_ACCOUNT_ID: ${TOYPOST_ACCOUNT_ID:-}
+      TOYPOST_WEBHOOK_SECRET: ${TOYPOST_WEBHOOK_SECRET:-}
       NEXTCLOUD_URL: http://nextcloud
       NEXTCLOUD_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
       NEXTCLOUD_CALENDAR: personal
@@ -73,7 +73,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  dokufy-data:
+  toypost-data:
   paperless-data:
   paperless-media:
   paperless-consume:

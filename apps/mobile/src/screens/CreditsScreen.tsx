@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import { formatDateDe, formatEuro, pricePerCreditCents } from '@dokufy/shared';
+import { formatDateDe, formatEuro, pricePerCreditCents } from '@toypost/shared';
 import { Card, Divider, Loading, Notice, Row, Screen, Section } from '../components/base.tsx';
 import { useNav } from '../nav.ts';
 import { useLoad, useSession } from '../session.tsx';

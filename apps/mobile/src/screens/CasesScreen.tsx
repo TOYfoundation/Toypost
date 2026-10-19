@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
-import { todayIso, type CaseStatus } from '@dokufy/shared';
+import { todayIso, type CaseStatus } from '@toypost/shared';
 import { Card, Chip, Divider, Empty, Field, Loading, Notice, Screen } from '../components/base.tsx';
 import { CaseRow } from '../components/case.tsx';
 import { useNav } from '../nav.ts';

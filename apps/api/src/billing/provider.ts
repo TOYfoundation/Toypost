@@ -11,7 +11,7 @@ import { createHmac } from 'node:crypto';
  * 1. App ruft POST /v1/billing/checkout → Bestellung wird angelegt, Adapter liefert eine Bezahl-URL.
  * 2. Nutzer bezahlt beim Anbieter.
  * 3. Anbieter ruft POST /v1/billing/webhook/:provider → Adapter prüft die Signatur und meldet die bezahlte Bestellung.
- * 4. Dokufy schaltet den Tarif frei oder schreibt die Credits gut (idempotent).
+ * 4. ToyPost schaltet den Tarif frei oder schreibt die Credits gut (idempotent).
  */
 
 export interface CheckoutOrder {

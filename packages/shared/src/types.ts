@@ -72,7 +72,7 @@ export interface CaseSummary {
   assigneeName?: string;
   /** 0..1, wie sicher sich die KI bei Zuordnung und Extraktion ist */
   confidence: number;
-  /** Datum, an dem Dokufy nachhaken soll, wenn keine Antwort kam */
+  /** Datum, an dem ToyPost nachhaken soll, wenn keine Antwort kam */
   followUpOn?: string;
 }
 

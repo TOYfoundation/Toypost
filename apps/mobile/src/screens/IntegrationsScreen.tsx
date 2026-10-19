@@ -10,7 +10,7 @@ import type { IntegrationKind } from '../api/types.ts';
 const FORMS: Record<IntegrationKind, { title: string; purpose: string; fields: { key: string; label: string; placeholder: string; secret?: boolean; hint?: string }[] }> = {
   paperless: {
     title: 'Paperless-ngx',
-    purpose: 'Archiv und Texterkennung. Alle Post landet hier; Dokufy liest mit.',
+    purpose: 'Archiv und Texterkennung. Alle Post landet hier; ToyPost liest mit.',
     fields: [
       { key: 'url', label: 'Adresse', placeholder: 'https://paperless.beispiel.de' },
       { key: 'token', label: 'API-Token', placeholder: 'aus Paperless → Profil → API-Token', secret: true },
@@ -28,8 +28,8 @@ const FORMS: Record<IntegrationKind, { title: string; purpose: string; fields: {
   },
   n8n: {
     title: 'n8n',
-    purpose: 'Eigene Abläufe: Dokufy meldet jedes Ereignis an deinen Workflow. Ab Team.',
-    fields: [{ key: 'eventsUrl', label: 'Webhook-Adresse', placeholder: 'https://n8n.beispiel.de/webhook/dokufy' }],
+    purpose: 'Eigene Abläufe: ToyPost meldet jedes Ereignis an deinen Workflow. Ab Team.',
+    fields: [{ key: 'eventsUrl', label: 'Webhook-Adresse', placeholder: 'https://n8n.beispiel.de/webhook/toypost' }],
   },
 };
 

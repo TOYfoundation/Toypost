@@ -4,7 +4,7 @@ import { Button, Card, Field, Notice, Screen } from '../components/base.tsx';
 import { DeadlineStamp } from '../components/case.tsx';
 import { API_URL, useSession } from '../session.tsx';
 import { space, type, useStyles, type Palette } from '../theme.ts';
-import { addDays, todayIso } from '@dokufy/shared';
+import { addDays, todayIso } from '@toypost/shared';
 
 const styles = (p: Palette) =>
   StyleSheet.create({
@@ -48,7 +48,7 @@ export function SignInScreen() {
         <DeadlineStamp deadline={{ date: addDays(today, 3), kind: 'zahlung', phrase: '', explanation: '' }} today={today} size={72} />
         <View style={{ flex: 1 }}>
           <Text accessibilityRole="header" style={s.brand}>
-            Dokufy
+            ToyPost
           </Text>
           <Text style={s.claim}>Deine Post, sortiert, mit Frist und fertiger Antwort.</Text>
         </View>

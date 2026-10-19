@@ -1,16 +1,16 @@
-# Dokufy
+# ToyPost
 
-Dokufy liest jede eingehende Post – ob Papierbrief, PDF oder E-Mail –, erkennt Absender, Frist und Betrag, ordnet sie dem richtigen Vorgang zu und bereitet die Antwort vor. Archiv, Arbeitsplatz und Abläufe kommen aus drei bestehenden Systemen:
+ToyPost liest jede eingehende Post – ob Papierbrief, PDF oder E-Mail –, erkennt Absender, Frist und Betrag, ordnet sie dem richtigen Vorgang zu und bereitet die Antwort vor. Archiv, Arbeitsplatz und Abläufe kommen aus drei bestehenden Systemen:
 
-| System | Rolle in Dokufy |
+| System | Rolle in ToyPost |
 | --- | --- |
 | **Paperless-ngx** | Eingang, Texterkennung (OCR), revisionsfähiges Archiv – die einzige Quelle der Wahrheit für fertige Dokumente |
 | **Nextcloud** | Arbeitsplatz: Fristen im Kalender, Entwürfe als Dateien, Aufgaben in Deck |
-| **n8n** | Abläufe: verbindet Ereignisse mit Zielen, ohne dass Dokufy jede Kombination kennen muss |
+| **n8n** | Abläufe: verbindet Ereignisse mit Zielen, ohne dass ToyPost jede Kombination kennen muss |
 
-Dokufy selbst ist die dünne Schicht darüber: Vorgänge, KI-Auswertung, Credits und eine App für alle Geräte.
+ToyPost selbst ist die dünne Schicht darüber: Vorgänge, KI-Auswertung, Credits und eine App für alle Geräte.
 
-Das ausführliche Konzept (Funktionen, Tarife, Kostenkalkulation) steht im Claude-Doc „Dokufy – Architekturkonzept“.
+Das ausführliche Konzept (Funktionen, Tarife, Kostenkalkulation) steht im Claude-Doc „ToyPost – Architekturkonzept“.
 
 ## Aufbau
 
@@ -33,7 +33,7 @@ Voraussetzung: Node.js 22.18 oder neuer (Typ-Stripping und `node:sqlite` sind ei
 ```bash
 # API mit Demo-Daten
 cp apps/api/.env.example apps/api/.env
-npm run seed --workspace @dokufy/api      # Konto demo@dokufy.app / dokufy-demo-2026
+npm run seed --workspace @toypost/api      # Konto demo@toypost.app / toypost-demo-2026
 npm run api                                # http://localhost:8787
 
 # App
@@ -57,7 +57,7 @@ docker compose up -d
 - **Fristen-Radar** – erkennt „binnen 14 Tagen“, „innerhalb eines Monats nach Bekanntgabe“ und ausdrückliche Daten; rechnet nach §§ 187 ff. BGB und § 122 AO, verschiebt auf den nächsten Werktag und zeigt die Rechnung an
 - **Zahlungs-Assistent** – liest IBAN und Betrag, erzeugt einen GiroCode für die Banking-App
 - **Antwortentwürfe** – in drei Tonlagen; im Team mit 4-Augen-Freigabe
-- **Wiedervorlage** – nach dem Versand erinnert Dokufy, wenn keine Antwort kommt
+- **Wiedervorlage** – nach dem Versand erinnert ToyPost, wenn keine Antwort kommt
 - **Lernende Regeln** – jede Korrektur wird zur Regel; der nächste gleiche Brief braucht keine KI und keine Credits
 - **Frag dein Archiv** – Fragen in Alltagssprache mit Quellenangabe
 
@@ -90,9 +90,9 @@ Die Abrechnung läuft über die Schnittstelle in `apps/api/src/billing/provider.
 ## Integrationen einrichten
 
 1. **Paperless**: Profil → API-Token erzeugen, in der App unter Konto → Verbindungen eintragen.
-2. **Paperless → Dokufy**: Workflow „Dokument hinzugefügt“ mit Webhook auf die n8n-Vorlage `integrations/n8n/paperless-an-dokufy.json` (signiert die Meldung) oder direkt auf die angezeigte Webhook-Adresse.
-3. **Nextcloud**: App-Passwort anlegen (Einstellungen → Sicherheit). Ohne n8n schreibt Dokufy Fristen direkt in den Kalender.
-4. **n8n** (ab Team): `integrations/n8n/dokufy-ereignisse-verteilen.json` importieren, Webhook-Adresse in Dokufy eintragen. Dokufy sendet `document.analyzed`, `deadline.detected`, `draft.created`, `case.updated`, signiert mit HMAC-SHA256 (`x-dokufy-signature`).
+2. **Paperless → ToyPost**: Workflow „Dokument hinzugefügt“ mit Webhook auf die n8n-Vorlage `integrations/n8n/paperless-an-toypost.json` (signiert die Meldung) oder direkt auf die angezeigte Webhook-Adresse.
+3. **Nextcloud**: App-Passwort anlegen (Einstellungen → Sicherheit). Ohne n8n schreibt ToyPost Fristen direkt in den Kalender.
+4. **n8n** (ab Team): `integrations/n8n/toypost-ereignisse-verteilen.json` importieren, Webhook-Adresse in ToyPost eintragen. ToyPost sendet `document.analyzed`, `deadline.detected`, `draft.created`, `case.updated`, signiert mit HMAC-SHA256 (`x-toypost-signature`).
 
 ## Tests
 

@@ -62,7 +62,7 @@ export class PaperlessClient {
     return (await res.text()).replace(/"/g, '');
   }
 
-  /** Setzt das Custom Field "Vorgang", damit Paperless und Dokufy dieselbe Zuordnung kennen. */
+  /** Setzt das Custom Field "Vorgang", damit Paperless und ToyPost dieselbe Zuordnung kennen. */
   async setCaseField(documentId: number, fieldId: number, caseId: string): Promise<void> {
     await this.req(`/api/documents/${documentId}/`, {
       method: 'PATCH',

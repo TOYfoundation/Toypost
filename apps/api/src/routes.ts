@@ -253,7 +253,7 @@ export function buildRouter(ctx: Context): Router {
         throw new HttpError(
           422,
           'ocr_unavailable',
-          'Für Fotos und PDFs ohne Text braucht Dokufy die Texterkennung von Paperless. Verbinde Paperless unter Konto → Verbindungen.',
+          'Für Fotos und PDFs ohne Text braucht ToyPost die Texterkennung von Paperless. Verbinde Paperless unter Konto → Verbindungen.',
         );
       }
       const taskId = await new PaperlessClient(cfg).upload(
@@ -371,13 +371,13 @@ export function buildRouter(ctx: Context): Router {
       const seats = optionalInt(b, 'seats', p.minSeats, p.maxSeats ?? 10_000, p.minSeats);
       amountCents = priceFor(plan, interval, seats);
       item = { plan, interval, seats };
-      description = `Dokufy ${p.name}${p.perSeat ? `, ${seats} Nutzer` : ''}, ${interval === 'month' ? 'monatlich' : 'jährlich'}`;
+      description = `ToyPost ${p.name}${p.perSeat ? `, ${seats} Nutzer` : ''}, ${interval === 'month' ? 'monatlich' : 'jährlich'}`;
     } else {
       const pack = CREDIT_PACKS.find((p) => p.id === b.pack);
       if (!pack) throw new HttpError(400, 'invalid_input', 'Unbekanntes Credit-Paket. Erlaubt: S, M, L.');
       amountCents = pack.priceCents;
       item = { pack: pack.id, credits: pack.credits };
-      description = `${pack.credits} Dokufy-Credits`;
+      description = `${pack.credits} ToyPost-Credits`;
     }
     const orderId = newId('ord');
     db.prepare('INSERT INTO orders (id, account_id, type, item_json, amount_cents, provider, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
@@ -496,21 +496,21 @@ export function buildRouter(ctx: Context): Router {
 
   /**
    * Eingang aus Paperless – direkt per Paperless-Workflow-Webhook oder über n8n.
-   * Anmeldung: Header x-dokufy-token = Webhook-Geheimnis des Kontos (Paperless kann feste Header senden)
-   * oder x-dokufy-signature = HMAC-SHA256 des Rohinhalts (für Absender, die signieren können).
+   * Anmeldung: Header x-toypost-token = Webhook-Geheimnis des Kontos (Paperless kann feste Header senden)
+   * oder x-toypost-signature = HMAC-SHA256 des Rohinhalts (für Absender, die signieren können).
    *
    * Aktionen (Feld "action"):
    *  - "added" (Standard): neues Dokument auswerten und einordnen
-   *  - "draft": Antwortentwurf für den Vorgang des Dokuments schreiben (Tag "dokufy-antwort" in Paperless)
-   *  - "done": Vorgang des Dokuments als erledigt markieren (Tag "dokufy-erledigt" in Paperless)
+   *  - "draft": Antwortentwurf für den Vorgang des Dokuments schreiben (Tag "toypost-antwort" in Paperless)
+   *  - "done": Vorgang des Dokuments als erledigt markieren (Tag "toypost-erledigt" in Paperless)
    */
   r.post('/v1/hooks/paperless/:accountId', async (req) => {
     const account = getAccountRow(db, req.params.accountId);
-    const token = String(req.headers['x-dokufy-token'] ?? '');
-    const sig = String(req.headers['x-dokufy-signature'] ?? '');
+    const token = String(req.headers['x-toypost-token'] ?? '');
+    const sig = String(req.headers['x-toypost-signature'] ?? '');
     const authorized =
       (token && safeEqual(token, account.webhook_secret)) || (sig && safeEqual(sig, webhookSignature(account.webhook_secret, req.rawBody)));
-    if (!authorized) throw new HttpError(401, 'invalid_signature', 'Anmeldung am Webhook fehlgeschlagen (x-dokufy-token oder x-dokufy-signature).');
+    if (!authorized) throw new HttpError(401, 'invalid_signature', 'Anmeldung am Webhook fehlgeschlagen (x-toypost-token oder x-toypost-signature).');
 
     // Paperless setzt Platzhalter als Text ein: "123" statt 123
     const paperlessId = Number(req.body?.documentId);
@@ -521,7 +521,7 @@ export function buildRouter(ctx: Context): Router {
       | undefined;
 
     if (action !== 'added') {
-      if (!existing) throw new HttpError(404, 'not_found', `Dokument ${paperlessId} ist in Dokufy noch nicht eingeordnet.`);
+      if (!existing) throw new HttpError(404, 'not_found', `Dokument ${paperlessId} ist in ToyPost noch nicht eingeordnet.`);
       if (action === 'done') {
         const summary = updateCase(db, account.id, existing.case_id, { status: 'done' });
         ctx.delivery.emit(account.id, { type: 'case.updated', case: summary });
@@ -543,7 +543,7 @@ export function buildRouter(ctx: Context): Router {
       if (!cfg) throw new HttpError(400, 'not_configured', 'Paperless ist nicht verbunden und es wurde kein Text mitgeschickt.');
       const doc = await new PaperlessClient(cfg).getDocument(paperlessId);
       text = doc.content;
-      // Paperless-Titel sind oft Dateinamen ("scan_0042"); Dokufys eigene Auswertung liefert den besseren Titel.
+      // Paperless-Titel sind oft Dateinamen ("scan_0042"); ToyPosts eigene Auswertung liefert den besseren Titel.
       created = created ?? doc.created;
     }
     if (text.trim().length < 20) return { skipped: true, reason: 'Kein lesbarer Text (leeres Dokument oder OCR fehlgeschlagen).' };

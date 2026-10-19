@@ -17,18 +17,18 @@ import { todayIso, type CaseSummary, type Deadline } from '../shared.ts';
 /**
  * Verteilt Ergebnisse an Nextcloud.
  * Ist n8n verbunden, geht jedes Ereignis samt vorbereiteter Nextcloud-Schreibvorgänge (davWrites) an n8n;
- * n8n führt sie aus und kann weitere eigene Schritte anhängen. Ohne n8n schreibt Dokufy selbst in Nextcloud.
+ * n8n führt sie aus und kann weitere eigene Schritte anhängen. Ohne n8n schreibt ToyPost selbst in Nextcloud.
  * Fehler blockieren nie die Verarbeitung; sie werden protokolliert.
  */
 
-export type DokufyEvent =
+export type ToyPostEvent =
   | { type: 'document.analyzed'; caseId: string; documentId: string; usedAi: boolean; case: CaseSummary }
   | { type: 'deadline.detected'; caseId: string; caseTitle: string; deadline: Deadline }
   | { type: 'draft.created'; caseId: string; caseTitle: string; draftId: string; subject: string; body: string }
   | { type: 'case.updated'; case: CaseSummary };
 
 /** Welche Nextcloud-Änderungen ein Ereignis auslöst. Rein, ohne Netzwerk – deshalb gut testbar. */
-export function davWritesFor(event: DokufyEvent, cfg: NextcloudConfig, link?: string): DavWrite[] {
+export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: string): DavWrite[] {
   const ics = (uid: string, content: string): DavWrite => ({
     path: calendarObjectPath(cfg, uid),
     contentType: 'text/calendar; charset=utf-8',
@@ -59,7 +59,7 @@ export function davWritesFor(event: DokufyEvent, cfg: NextcloudConfig, link?: st
   }
 }
 
-function caseIdOf(event: DokufyEvent): string {
+function caseIdOf(event: ToyPostEvent): string {
   return event.type === 'case.updated' ? event.case.id : event.caseId;
 }
 
@@ -83,7 +83,7 @@ export class Delivery {
   }
 
   /** Nicht blockierend; in Tests kann mit `settle()` gewartet werden. */
-  emit(accountId: string, event: DokufyEvent): void {
+  emit(accountId: string, event: ToyPostEvent): void {
     const p = this.deliver(accountId, event)
       .catch((e: Error) => this.log(`Zustellung ${event.type} fehlgeschlagen: ${e.message}`))
       .finally(() => this.pending.delete(p));
@@ -94,7 +94,7 @@ export class Delivery {
     await Promise.all([...this.pending]);
   }
 
-  private async deliver(accountId: string, event: DokufyEvent): Promise<void> {
+  private async deliver(accountId: string, event: ToyPostEvent): Promise<void> {
     const nc = this.integrations.get(accountId, 'nextcloud');
     const davWrites = nc ? davWritesFor(event, nc, this.linkFor(accountId, caseIdOf(event))) : [];
     const n8n = this.integrations.get(accountId, 'n8n');
@@ -105,7 +105,7 @@ export class Delivery {
         try {
           const res = await fetch(n8n.eventsUrl, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', 'x-dokufy-signature': signature, 'x-dokufy-event': event.type },
+            headers: { 'content-type': 'application/json', 'x-toypost-signature': signature, 'x-toypost-event': event.type },
             body,
             signal: AbortSignal.timeout(10_000),
           });
