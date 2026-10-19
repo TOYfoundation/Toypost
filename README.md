@@ -78,7 +78,7 @@ Credits verbraucht nur KI-Arbeit (Auswerten 1, Frage 3, Entwurf 5). Zuerst wird 
 `AI_PROVIDER` in `apps/api/.env`:
 
 - `mock` – Regeln ohne KI (Entwicklung, Tests)
-- `anthropic` – Claude: Haiku für die Auswertung, Sonnet für Entwürfe und Fragen
+- `anthropic` – Claude: Haiku für Auswertung und Fragen, Sonnet für Entwürfe
 - `ollama` – lokales Modell, keine Daten verlassen den Server
 
 Regeln laufen immer zuerst und kosten nichts. Briefinhalte werden als Daten, nicht als Anweisungen behandelt.

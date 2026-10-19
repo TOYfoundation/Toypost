@@ -13,7 +13,7 @@ import {
 
 /**
  * Claude über die Messages API, ohne SDK.
- * Schnelles Modell (Haiku) für Auswertung, stärkeres (Sonnet) für Entwürfe und Fragen.
+ * Schnelles Modell (Haiku) für Auswertung und Fragen, stärkeres (Sonnet) für Entwürfe.
  */
 export class AnthropicProvider implements AiProvider {
   readonly name = 'anthropic';
@@ -83,7 +83,8 @@ export class AnthropicProvider implements AiProvider {
 
   async answer(question: string, sources: AskSource[]): Promise<{ answer: string; sourceIds: string[] }> {
     const data = await this.call({
-      model: this.modelSmart,
+      // Fragen laufen auf dem schnellen Modell: 3 Credits müssen auch im günstigsten Paket die KI-Kosten decken.
+      model: this.modelFast,
       max_tokens: 600,
       system: ASK_SYSTEM,
       messages: [{ role: 'user', content: askUserPrompt(question, sources) }],
