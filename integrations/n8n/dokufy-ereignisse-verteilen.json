@@ -1,0 +1,130 @@
+{
+  "name": "Dokufy: Ereignisse an Nextcloud verteilen",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dokufy",
+        "responseMode": "onReceived",
+        "options": { "rawBody": true }
+      },
+      "id": "b2e1d3f5-0001-4b2a-8f02-000000000001",
+      "name": "Dokufy-Ereignis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 320],
+      "webhookId": "dokufy"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prüft die Signatur, damit nur Dokufy Termine anlegen kann.\nconst crypto = require('crypto');\nconst item = $input.first();\nconst raw = item.binary?.data ? Buffer.from(item.binary.data.data, 'base64').toString('utf8') : JSON.stringify(item.json.body);\nconst sig = item.json.headers['x-dokufy-signature'];\nconst expected = crypto.createHmac('sha256', $env.DOKUFY_WEBHOOK_SECRET).update(raw).digest('hex');\nif (!sig || sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {\n  throw new Error('Ungültige Signatur – Ereignis verworfen.');\n}\nreturn [{ json: JSON.parse(raw) }];"
+      },
+      "id": "b2e1d3f5-0002-4b2a-8f02-000000000002",
+      "name": "Signatur prüfen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 320]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "combinator": "and",
+                "conditions": [{ "leftValue": "={{ $json.type }}", "rightValue": "deadline.detected", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "Frist"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "combinator": "and",
+                "conditions": [{ "leftValue": "={{ $json.type }}", "rightValue": "draft.created", "operator": { "type": "string", "operation": "equals" } }]
+              },
+              "renameOutput": true,
+              "outputKey": "Entwurf"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "none" }
+      },
+      "id": "b2e1d3f5-0003-4b2a-8f02-000000000003",
+      "name": "Nach Ereignis",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [640, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ganztägiger Termin mit Erinnerungen 7, 3 und 1 Tag vorher.\nconst e = $input.first().json;\nconst d = e.deadline;\nconst day = d.date.replace(/-/g, '');\nconst next = new Date(d.date + 'T00:00:00Z'); next.setUTCDate(next.getUTCDate() + 1);\nconst end = next.toISOString().slice(0, 10).replace(/-/g, '');\nconst esc = (s) => String(s).replace(/\\\\/g, '\\\\\\\\').replace(/;/g, '\\\\;').replace(/,/g, '\\\\,').replace(/\\n/g, '\\\\n');\nconst label = { zahlung: 'Zahlung', einspruch: 'Einspruchsfrist', antwort: 'Antwort fällig', kuendigung: 'Kündigungsfrist', allgemein: 'Frist' }[d.kind];\nconst alarms = [7, 3, 1].map((n) => `BEGIN:VALARM\\r\\nACTION:DISPLAY\\r\\nDESCRIPTION:${esc(e.caseTitle)}\\r\\nTRIGGER:-P${n}D\\r\\nEND:VALARM`).join('\\r\\n');\nconst uid = `dokufy-${e.caseId}-${d.kind}`;\nconst ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Dokufy//n8n//DE','BEGIN:VEVENT',`UID:${uid}`,`DTSTAMP:${new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}/,'')}`,`DTSTART;VALUE=DATE:${day}`,`DTEND;VALUE=DATE:${end}`,`SUMMARY:${esc(label + ': ' + e.caseTitle)}`,`DESCRIPTION:${esc(d.explanation)}`,alarms,'END:VEVENT','END:VCALENDAR'].join('\\r\\n');\nreturn [{ json: { uid, ics } }];"
+      },
+      "id": "b2e1d3f5-0004-4b2a-8f02-000000000004",
+      "name": "Kalendereintrag bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 220]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.NEXTCLOUD_URL }}/remote.php/dav/calendars/{{ $env.NEXTCLOUD_USER }}/{{ $env.NEXTCLOUD_CALENDAR || 'personal' }}/{{ $json.uid }}.ics",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "content-type", "value": "text/calendar; charset=utf-8" }] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "text/calendar",
+        "body": "={{ $json.ics }}",
+        "options": {}
+      },
+      "id": "b2e1d3f5-0005-4b2a-8f02-000000000005",
+      "name": "Nextcloud-Kalender",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 220],
+      "notes": "Zugang: HTTP Basic Auth mit Nextcloud-Benutzer und App-Passwort."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.NEXTCLOUD_URL }}/index.php/apps/deck/api/v1.0/boards/{{ $env.DECK_BOARD_ID }}/stacks/{{ $env.DECK_STACK_ID }}/cards",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "OCS-APIRequest", "value": "true" }] },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "title", "value": "=Antwort prüfen: {{ $json.subject }}" },
+            { "name": "type", "value": "plain" },
+            { "name": "order", "value": "0" },
+            { "name": "description", "value": "=Entwurf in Dokufy, Vorgang {{ $json.caseId }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2e1d3f5-0006-4b2a-8f02-000000000006",
+      "name": "Deck-Karte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 420],
+      "notes": "Optional: legt für jeden Antwortentwurf eine Aufgabe in Nextcloud Deck an."
+    }
+  ],
+  "connections": {
+    "Dokufy-Ereignis": { "main": [[{ "node": "Signatur prüfen", "type": "main", "index": 0 }]] },
+    "Signatur prüfen": { "main": [[{ "node": "Nach Ereignis", "type": "main", "index": 0 }]] },
+    "Nach Ereignis": {
+      "main": [
+        [{ "node": "Kalendereintrag bauen", "type": "main", "index": 0 }],
+        [{ "node": "Deck-Karte", "type": "main", "index": 0 }]
+      ]
+    },
+    "Kalendereintrag bauen": { "main": [[{ "node": "Nextcloud-Kalender", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Europe/Berlin" }
+}

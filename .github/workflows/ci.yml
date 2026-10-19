@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api-und-shared:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Tests (ohne Abhängigkeiten)
+        run: |
+          (cd packages/shared && node --test "test/**/*.test.ts")
+          (cd apps/api && node --test "test/**/*.test.ts")
+      - name: Typprüfung
+        run: |
+          npm install --no-save --no-package-lock --workspaces=false typescript@5 @types/node@24
+          npx tsc --noEmit -p packages/shared
+          npx tsc --noEmit -p apps/api
+
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Abhängigkeiten installieren
+        run: npm install
+      - name: Expo-Versionen prüfen
+        working-directory: apps/mobile
+        run: npx expo install --check
+      - name: Typprüfung
+        working-directory: apps/mobile
+        run: npx tsc --noEmit -p .
+      - name: Web-Build
+        working-directory: apps/mobile
+        run: npx expo export --platform web

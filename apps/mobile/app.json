@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Dokufy",
+    "slug": "dokufy",
+    "scheme": "dokufy",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "de.dokufy.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Dokufy nutzt die Kamera, um Briefe zu scannen.",
+        "NSPhotoLibraryUsageDescription": "Dokufy liest Fotos von Briefen aus deiner Mediathek."
+      }
+    },
+    "android": {
+      "package": "de.dokufy.app",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F3F5F7"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Dokufy nutzt die Kamera, um Briefe zu scannen.",
+          "photosPermission": "Dokufy liest Fotos von Briefen aus deiner Mediathek."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "http://localhost:8787"
+    },
+    "icon": "./assets/icon.png"
+  }
+}

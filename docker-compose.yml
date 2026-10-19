@@ -1,0 +1,81 @@
+# Komplette Testumgebung: Dokufy-API, Paperless-ngx, Nextcloud und n8n.
+# Start:  cp .env.example .env  (Werte setzen)  →  docker compose up -d
+# Für Produktion: eigene Datenbanken (Postgres) für Paperless und Nextcloud, TLS-Proxy davor, Backups.
+
+services:
+  dokufy-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DOKUFY_SECRET: ${DOKUFY_SECRET:?DOKUFY_SECRET in .env setzen}
+      PUBLIC_URL: ${DOKUFY_PUBLIC_URL:-http://localhost:8787}
+      APP_ORIGIN: ${DOKUFY_APP_ORIGIN:-*}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-dev}
+      NODE_ENV: ${NODE_ENV:-development}
+    ports: ["8787:8787"]
+    volumes: [dokufy-data:/data]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    depends_on: [redis]
+    environment:
+      PAPERLESS_REDIS: redis://redis:6379
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY:?PAPERLESS_SECRET_KEY in .env setzen}
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER:-admin}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD:?PAPERLESS_ADMIN_PASSWORD in .env setzen}
+      PAPERLESS_URL: ${PAPERLESS_URL:-http://localhost:8000}
+      PAPERLESS_TIME_ZONE: Europe/Berlin
+      PAPERLESS_OCR_LANGUAGE: deu+eng
+      PAPERLESS_OCR_LANGUAGES: deu
+    ports: ["8000:8000"]
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - paperless-consume:/usr/src/paperless/consume
+    restart: unless-stopped
+
+  nextcloud:
+    image: nextcloud:stable
+    environment:
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD:?NEXTCLOUD_ADMIN_PASSWORD in .env setzen}
+      SQLITE_DATABASE: nextcloud
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost nextcloud
+    ports: ["8080:80"]
+    volumes:
+      - nextcloud-data:/var/www/html
+      # Paperless-Eingang als Ordner in Nextcloud (über "External storage" als lokales Verzeichnis einbinden)
+      - paperless-consume:/mnt/paperless-eingang
+    restart: unless-stopped
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    environment:
+      GENERIC_TIMEZONE: Europe/Berlin
+      N8N_SECURE_COOKIE: "false"
+      NODE_FUNCTION_ALLOW_BUILTIN: crypto
+      DOKUFY_API_URL: http://dokufy-api:8787
+      DOKUFY_ACCOUNT_ID: ${DOKUFY_ACCOUNT_ID:-}
+      DOKUFY_WEBHOOK_SECRET: ${DOKUFY_WEBHOOK_SECRET:-}
+      NEXTCLOUD_URL: http://nextcloud
+      NEXTCLOUD_USER: ${NEXTCLOUD_ADMIN_USER:-admin}
+      NEXTCLOUD_CALENDAR: personal
+    ports: ["5678:5678"]
+    volumes: [n8n-data:/home/node/.n8n]
+    restart: unless-stopped
+
+volumes:
+  dokufy-data:
+  paperless-data:
+  paperless-media:
+  paperless-consume:
+  nextcloud-data:
+  n8n-data:

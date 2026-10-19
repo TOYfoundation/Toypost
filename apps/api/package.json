@@ -1,0 +1,17 @@
+{
+  "name": "@dokufy/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dokufy API: Konten, Vorgänge, Credits, Abrechnung, KI und Anbindung an Paperless-ngx, Nextcloud und n8n. Ohne externe Abhängigkeiten (Node.js >= 22.18).",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/server.ts",
+    "start": "node --env-file-if-exists=.env src/server.ts",
+    "seed": "node --env-file-if-exists=.env src/seed.ts",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@dokufy/shared": "0.1.0"
+  }
+}

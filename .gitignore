@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+.env
+.env.*
+!.env.example
+data/
+*.sqlite
+*.sqlite-*
+.DS_Store
+ios/
+android/
+tools/preview/out/

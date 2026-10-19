@@ -1,0 +1,24 @@
+{
+  "name": "dokufy",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Dokufy – Korrespondenz-Assistent auf Basis von Paperless-ngx, Nextcloud und n8n",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "api": "npm run dev --workspace @dokufy/api",
+    "app": "npm run start --workspace @dokufy/mobile",
+    "app:web": "npm run web --workspace @dokufy/mobile",
+    "test": "npm run test --workspace @dokufy/shared && npm run test --workspace @dokufy/api",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.2"
+  }
+}

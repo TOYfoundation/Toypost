@@ -1,0 +1,57 @@
+{
+  "name": "Dokufy: neue Post aus Paperless melden",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "paperless-neu",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1f0c2e4-0001-4c1a-9e01-000000000001",
+      "name": "Paperless: Dokument hinzugefügt",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "paperless-neu"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Paperless-Workflow sendet {\"doc_url\": \".../documents/123/\"} oder {\"document_id\": 123}.\n// Dokufy braucht nur die ID; den Text holt Dokufy selbst aus Paperless.\nconst crypto = require('crypto');\nconst body = $input.first().json.body ?? $input.first().json;\nlet id = Number(body.document_id ?? body.id);\nif (!id && body.doc_url) {\n  const m = String(body.doc_url).match(/documents\\/(\\d+)/);\n  if (m) id = Number(m[1]);\n}\nif (!id) throw new Error('Keine Paperless-Dokument-ID im Webhook gefunden.');\n\nconst payload = JSON.stringify({ documentId: id, channel: body.source === 'mail' ? 'mail' : 'scan' });\n// Geheimnis aus Dokufy: Konto → Verbindungen (oder GET /v1/integrations/webhook-secret)\nconst secret = $env.DOKUFY_WEBHOOK_SECRET;\nif (!secret) throw new Error('Umgebungsvariable DOKUFY_WEBHOOK_SECRET fehlt.');\nconst signature = crypto.createHmac('sha256', secret).update(payload).digest('hex');\nreturn [{ json: { payload, signature } }];"
+      },
+      "id": "a1f0c2e4-0002-4c1a-9e01-000000000002",
+      "name": "Signieren",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DOKUFY_API_URL }}/v1/hooks/paperless/{{ $env.DOKUFY_ACCOUNT_ID }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" },
+            { "name": "x-dokufy-signature", "value": "={{ $json.signature }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.payload }}",
+        "options": { "timeout": 60000, "retry": { "maxTries": 3 } }
+      },
+      "id": "a1f0c2e4-0003-4c1a-9e01-000000000003",
+      "name": "An Dokufy senden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "Paperless: Dokument hinzugefügt": { "main": [[{ "node": "Signieren", "type": "main", "index": 0 }]] },
+    "Signieren": { "main": [[{ "node": "An Dokufy senden", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Europe/Berlin" }
+}
