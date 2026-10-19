@@ -105,24 +105,30 @@ for key in "${GEMERKT[@]}"; do printf '%s=%s\n' "$key" "${!key:-}" >> "$ANGABEN_
 umask 022
 ok "Angaben gespeichert"
 
-# ---------- Dokufy von GitHub holen ----------
-schritt "Dokufy von GitHub holen ($REPO, $REF)"
+# ---------- Quellcode: mitgeliefertes Paket oder GitHub ----------
 TARBALL=$WORK/dokufy-src.tar.gz
-hole_quellcode() {
-  local auth=()
-  [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
-  curl -sS -L "${auth[@]}" -H 'Accept: application/vnd.github+json' -o "$TARBALL" -w '%{http_code}' \
-    "$GITHUB_API/repos/$REPO/tarball/$REF" || echo 000
-}
-code=$(hole_quellcode)
-if [[ "$code" =~ ^(401|403|404)$ ]] && [ -z "${GITHUB_TOKEN:-}" ]; then
-  hinweis "Das Repository ist privat oder nicht erreichbar."
-  geheim GITHUB_TOKEN "GitHub-Token mit Lesezugriff auf $REPO"
-  [ -n "${GITHUB_TOKEN:-}" ] && code=$(hole_quellcode)
+if [ -n "${DOKUFY_QUELLE:-}" ]; then
+  schritt "Dokufy-Paket aus dem Block verwenden"
+  [ -f "$DOKUFY_QUELLE" ] || fehler "Paket $DOKUFY_QUELLE fehlt."
+  [ "$DOKUFY_QUELLE" -ef "$TARBALL" ] || cp "$DOKUFY_QUELLE" "$TARBALL"
+else
+  schritt "Dokufy von GitHub holen ($REPO, $REF)"
+  hole_quellcode() {
+    local auth=()
+    [ -n "${GITHUB_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
+    curl -sS -L "${auth[@]}" -H 'Accept: application/vnd.github+json' -o "$TARBALL" -w '%{http_code}' \
+      "$GITHUB_API/repos/$REPO/tarball/$REF" || echo 000
+  }
+  code=$(hole_quellcode)
+  if [[ "$code" =~ ^(401|403|404)$ ]] && [ -z "${GITHUB_TOKEN:-}" ]; then
+    hinweis "Das Repository ist privat oder nicht erreichbar."
+    geheim GITHUB_TOKEN "GitHub-Token mit Lesezugriff auf $REPO"
+    [ -n "${GITHUB_TOKEN:-}" ] && code=$(hole_quellcode)
+  fi
+  [ "$code" = 200 ] || fehler "GitHub antwortet mit $code für $REPO@$REF. Stimmen Repository, Zweig und Token?"
 fi
-[ "$code" = 200 ] || fehler "GitHub antwortet mit $code für $REPO@$REF. Stimmen Repository, Zweig und Token?"
 tar xzf "$TARBALL" -O --wildcards '*/deploy/proxmox/vm-setup.sh' > "$WORK/vm-setup.sh" 2>/dev/null || true
-[ -s "$WORK/vm-setup.sh" ] || fehler "Im Archiv fehlt deploy/proxmox/vm-setup.sh. Ist $REF der richtige Zweig?"
+[ -s "$WORK/vm-setup.sh" ] || fehler "Im Archiv fehlt deploy/proxmox/vm-setup.sh. Ist das Paket vollständig bzw. $REF der richtige Zweig?"
 ok "Quellcode geladen ($(du -h "$TARBALL" | cut -f1))"
 
 # ---------- SSH-Schlüssel des Hosts für die VM ----------
@@ -130,7 +136,7 @@ ok "Quellcode geladen ($(du -h "$TARBALL" | cut -f1))"
 { cat "$WORK/id_ed25519.pub"; [ -n "$DOKUFY_SSHKEY" ] && echo "$DOKUFY_SSHKEY"; } > "$WORK/ssh-keys.pub"
 SSH_OPTS=(-i "$WORK/id_ed25519" -o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=30
   -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$WORK/known_hosts")
-vm_ssh() { ssh "${SSH_OPTS[@]}" "$VM_USER@$VM_IP" "$@"; }
+vm_ssh() { ssh -n "${SSH_OPTS[@]}" "$VM_USER@$VM_IP" "$@"; }
 
 # ---------- VM ----------
 VMID=$DOKUFY_VMID
