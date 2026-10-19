@@ -11,6 +11,8 @@ import {
   type Request,
 } from './http.ts';
 import { newId, safeEqual, verifyPassword, webhookSignature } from './security.ts';
+import { addToyPostRoutes } from './routes-toypost.ts';
+import { sendMessage, bestChannelFor } from './services/messages.ts';
 import { createAccountWithOwner, getAccountRow, getUserRow, toAccountDto, type AccountRow, type UserRow } from './services/accounts.ts';
 import { addPurchasedCredits, getBalance, ledger, spendCredits, refundCredits } from './services/credits.ts';
 import { addTimeline, getCaseDetail, getCaseRow, getCaseSummary, listCases, todayView, updateCase, docToSummary } from './services/cases.ts';
@@ -213,7 +215,7 @@ export function buildRouter(ctx: Context): Router {
     return createDraft(a.account, a.user, req.params.id, intent, tone);
   });
 
-  r.post('/v1/drafts/:id/send', (req) => {
+  r.post('/v1/drafts/:id/send', async (req) => {
     const a = auth(req);
     const d = db
       .prepare(`SELECT d.*, c.account_id FROM drafts d JOIN cases c ON c.id = d.case_id WHERE d.id = ?`)
@@ -222,6 +224,16 @@ export function buildRouter(ctx: Context): Router {
     // 4-Augen-Prinzip: in Team und Enterprise darf nicht dieselbe Person schreiben und freigeben.
     if (hasFeature(a.account.plan, 'approval') && a.account.seats > 1 && d.created_by === a.user.id) {
       throw new HttpError(409, 'approval_required', 'Eine zweite Person muss diesen Entwurf freigeben.');
+    }
+    // ToyPost: optionally deliver the draft through a channel to the case's contact (e-mail, Telegram, SMS …)
+    if (req.body?.channelId !== undefined) {
+      const draft = db.prepare('SELECT subject, body FROM drafts WHERE id = ?').get(d.id) as { subject: string; body: string };
+      const caseRow = getCaseRow(db, a.account.id, d.case_id) as { contact_id: string | null };
+      if (!caseRow.contact_id) throw new HttpError(400, 'no_contact', 'Dieser Vorgang hat noch keinen Kontakt. Ordne einen Kontakt zu oder sende den Entwurf selbst.');
+      const channel = req.body.channelId ? ctx.channels.row(a.account.id, String(req.body.channelId)) : bestChannelFor(db, a.account.id, caseRow.contact_id);
+      if (!channel) throw new HttpError(400, 'no_channel', 'Für diesen Kontakt ist kein Kanal mit Kennung eingerichtet.');
+      const sent = await sendMessage(ctx, a.account, { channel, cfg: ctx.channels.config(channel), contactId: caseRow.contact_id, subject: draft.subject, text: draft.body, caseId: d.case_id });
+      if (sent.status !== 'sent') throw new HttpError(502, 'send_failed', `Senden fehlgeschlagen: ${sent.error ?? 'unbekannter Fehler'}. Der Entwurf bleibt erhalten.`);
     }
     db.prepare(`UPDATE drafts SET status = 'sent', approved_by = ? WHERE id = ?`).run(a.user.id, d.id);
     const followUp = new Date(ctx.now().getTime() + 14 * 86_400_000).toISOString().slice(0, 10);
@@ -562,6 +574,8 @@ export function buildRouter(ctx: Context): Router {
     }
     return result;
   });
+
+  addToyPostRoutes(r, ctx, { auth, requireAdmin, issueToken });
 
   return r;
 }

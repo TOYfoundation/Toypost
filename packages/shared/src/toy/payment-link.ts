@@ -1,5 +1,6 @@
-import { checkAddress } from './address.ts';
-import { parseToy, toyDecimal, ToyAmountError } from './amount.ts';
+import { checkAddress, findAddresses } from './address.ts';
+import { findToyAmount, parseToy, toyDecimal, ToyAmountError } from './amount.ts';
+import { LEGACY_TOKENS } from './safety.ts';
 
 /**
  * TOY payment links and QR codes, as planned for the TOYPAY wallet (concept 04, section 7a):
@@ -126,4 +127,27 @@ export function invoicePurpose(invoiceCode: string, label?: string): string {
   const code = `TP-${invoiceCode.toUpperCase()}`;
   if (!label) return code;
   return fitPurpose(`${code} ${label}`);
+}
+
+export interface DetectedToyRequest {
+  address: string;
+  amount?: bigint;
+  purpose?: string;
+  link: string;
+}
+
+/**
+ * A request to pay TOY found in a letter, e-mail or chat: a toychain: link, or exactly one address together
+ * with a TOY amount. Legacy token contracts and the user's own addresses are never treated as payees.
+ */
+export function detectToyRequest(text: string, ownAddresses: readonly string[] = []): DetectedToyRequest | undefined {
+  const excluded = new Set([...LEGACY_TOKENS.map((t) => t.address.toLowerCase()), ...ownAddresses.map((a) => a.toLowerCase())]);
+  const link = findPaymentLinks(text).find((l) => !excluded.has(l.address.toLowerCase()));
+  if (link) return { address: link.address, amount: link.amount, purpose: link.purpose, link: buildPaymentLink(link) };
+  const candidates = findAddresses(text).filter((a) => !excluded.has(a.toLowerCase()));
+  const amount = findToyAmount(text);
+  if (candidates.length === 1 && amount !== undefined) {
+    return { address: candidates[0], amount, link: buildPaymentLink({ address: candidates[0], amount }) };
+  }
+  return undefined;
 }

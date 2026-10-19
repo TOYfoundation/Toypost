@@ -19,7 +19,22 @@ export type DocumentKind =
   | 'information'
   | 'sonstiges';
 
-export type Channel = 'scan' | 'mail' | 'upload' | 'nextcloud';
+/** Where a document came from: paper and files, or one of the message channels. */
+export type Channel =
+  | 'scan'
+  | 'mail'
+  | 'upload'
+  | 'nextcloud'
+  | 'email'
+  | 'telegram'
+  | 'matrix'
+  | 'signal'
+  | 'sms'
+  | 'talk'
+  | 'webhook'
+  | 'feed'
+  | 'github'
+  | 'toyscan';
 
 export type DeadlineKind = 'zahlung' | 'einspruch' | 'antwort' | 'kuendigung' | 'allgemein';
 
@@ -74,10 +89,91 @@ export interface CaseSummary {
   confidence: number;
   /** Datum, an dem ToyPost nachhaken soll, wenn keine Antwort kam */
   followUpOn?: string;
+  /** Person oder Stelle hinter dem Vorgang, über alle Kanäle hinweg */
+  contact?: { id: string; name: string };
+  /** Warnungen (Betrug, Phrase, Adress-Falle); nie automatische Eingriffe */
+  safety?: SafetyNote[];
+  /** Zahlungsaufforderung in TOY, die in der Post stand (wir sollen zahlen) */
+  toyRequest?: ToyRequest;
+  /** eigene TOY-Rechnung zu diesem Vorgang (wir bekommen Geld) */
+  toyInvoice?: ToyInvoiceSummary;
+}
+
+export interface SafetyNote {
+  code: string;
+  severity: 'block' | 'red' | 'yellow';
+  message: string;
+}
+
+export interface ToyRequest {
+  address: string;
+  /** kleinste Einheiten als Dezimaltext */
+  amount?: string;
+  purpose?: string;
+  /** toychain:-Link zum Öffnen in der TOYPAY Wallet */
+  link: string;
+}
+
+export interface ToyInvoiceSummary {
+  id: string;
+  code: string;
+  address: string;
+  /** kleinste Einheiten als Dezimaltext */
+  amount: string;
+  paid: string;
+  purpose: string;
+  status: 'open' | 'partial' | 'paid' | 'expired';
+  validUntil?: string;
+  link: string;
+}
+
+export type MessageChannelKind =
+  | 'email'
+  | 'telegram'
+  | 'matrix'
+  | 'signal'
+  | 'sms'
+  | 'ntfy'
+  | 'talk'
+  | 'discord'
+  | 'slack'
+  | 'webhook'
+  | 'feed'
+  | 'github'
+  | 'toyscan';
+
+export interface MessageSummary {
+  id: string;
+  channelKind: MessageChannelKind;
+  channelName?: string;
+  direction: 'in' | 'out';
+  contact?: { id: string; name: string };
+  caseId?: string;
+  subject?: string;
+  /** gekürzt für Listen */
+  preview: string;
+  body: string;
+  status: 'received' | 'sent' | 'failed' | 'blocked' | 'queued';
+  safety: SafetyNote[];
+  language?: string;
+  createdAt: string;
+  error?: string;
+}
+
+export interface ContactSummary {
+  id: string;
+  name: string;
+  language: string;
+  toyAddress?: string;
+  tags: string[];
+  handles: { kind: MessageChannelKind; handle: string }[];
+  openCases: number;
+  lastMessageAt?: string;
 }
 
 export interface CaseDetail extends CaseSummary {
   documents: DocumentSummary[];
+  messages: MessageSummary[];
   timeline: { at: string; text: string }[];
   draft?: { id: string; subject: string; body: string; createdAt: string };
 }

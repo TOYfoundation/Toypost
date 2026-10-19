@@ -15,6 +15,14 @@ export interface Config {
   production: boolean;
   /** Eigene Installation: neue Konten erhalten alle Funktionen (Enterprise), kein Bezahlvorgang nötig */
   selfHosted: boolean;
+  /** Domain, für die „Anmelden mit Adresse“ gilt (EIP-4361), Standard: Host von PUBLIC_URL */
+  siweDomain: string;
+  /** erlaubte Chain-IDs beim Anmelden mit Adresse; leer = jede (ToyChain hat noch keine feste ID) */
+  chainIds: number[];
+  /** GitHub-API, in Tests ersetzbar */
+  githubApi: string;
+  /** Hintergrund-Abruf von Feeds, GitHub und ToyScan */
+  scheduler: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -47,5 +55,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     paymentProvider: env.PAYMENT_PROVIDER ?? (selfHosted ? 'none' : 'dev'),
     production,
     selfHosted,
+    siweDomain: env.SIWE_DOMAIN ?? new URL(env.PUBLIC_URL ?? `http://localhost:${env.PORT ?? 8787}`).host,
+    chainIds: (env.TOYCHAIN_CHAIN_IDS ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => {
+        const n = Number(s);
+        if (!Number.isInteger(n) || n <= 0) throw new Error(`TOYCHAIN_CHAIN_IDS: "${s}" ist keine Chain-ID.`);
+        return n;
+      }),
+    githubApi: env.GITHUB_API ?? 'https://api.github.com',
+    scheduler: !['0', 'false', 'nein'].includes(String(env.SCHEDULER ?? 'true').toLowerCase()),
   };
 }

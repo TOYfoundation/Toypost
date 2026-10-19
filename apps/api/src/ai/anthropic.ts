@@ -1,4 +1,4 @@
-import type { AiProvider, AnalyzeInput, AnalyzeResult, AskSource, DraftInput } from './provider.ts';
+import type { AiProvider, AnalyzeInput, AnalyzeResult, AskSource, ComposeInput, DraftInput, TranslateInput } from './provider.ts';
 import { mergeDeadlines } from './merge.ts';
 import {
   ANALYSIS_SCHEMA,
@@ -7,8 +7,12 @@ import {
   DRAFT_SYSTEM,
   analysisUserPrompt,
   askUserPrompt,
+  COMPOSE_SYSTEM,
+  composeUserPrompt,
   draftUserPrompt,
   parseJsonObject,
+  TRANSLATE_SYSTEM,
+  translateUserPrompt,
 } from './prompts.ts';
 
 /**
@@ -93,5 +97,20 @@ export class AnthropicProvider implements AiProvider {
     const parsed = parseJsonObject<{ answer: string; sourceIds: string[] }>(text);
     const ids = new Set(sources.map((s) => s.id));
     return { answer: parsed.answer, sourceIds: (parsed.sourceIds ?? []).filter((id) => ids.has(id)) };
+  }
+
+  private async text(model: string, system: string, user: string, maxTokens: number): Promise<string> {
+    const data = await this.call({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] });
+    return (data.content as any[]).filter((c) => c.type === 'text').map((c) => c.text).join('');
+  }
+
+  /** Translations run on the fast model: one call per language and message. */
+  async translate(input: TranslateInput): Promise<{ subject?: string; text: string }> {
+    const out = parseJsonObject<{ subject?: string | null; text: string }>(await this.text(this.modelFast, TRANSLATE_SYSTEM, translateUserPrompt(input), 2000));
+    return { subject: out.subject ?? undefined, text: out.text };
+  }
+
+  async compose(input: ComposeInput): Promise<{ subject: string; body: string }> {
+    return parseJsonObject(await this.text(this.modelSmart, COMPOSE_SYSTEM, composeUserPrompt(input), 1000));
   }
 }

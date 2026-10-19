@@ -1,4 +1,4 @@
-import type { AiProvider, AnalyzeInput, AnalyzeResult, AskSource, DraftInput } from './provider.ts';
+import type { AiProvider, AnalyzeInput, AnalyzeResult, AskSource, ComposeInput, DraftInput, TranslateInput } from './provider.ts';
 import { mergeDeadlines } from './merge.ts';
 import {
   ANALYSIS_SCHEMA,
@@ -7,7 +7,11 @@ import {
   DRAFT_SYSTEM,
   analysisUserPrompt,
   askUserPrompt,
+  COMPOSE_SYSTEM,
+  composeUserPrompt,
   draftUserPrompt,
+  TRANSLATE_SYSTEM,
+  translateUserPrompt,
   parseJsonObject,
 } from './prompts.ts';
 
@@ -65,5 +69,14 @@ export class OllamaProvider implements AiProvider {
     const parsed = parseJsonObject<{ answer: string; sourceIds: string[] }>(await this.chat(ASK_SYSTEM, askUserPrompt(question, sources), 'json'));
     const ids = new Set(sources.map((s) => s.id));
     return { answer: parsed.answer, sourceIds: (parsed.sourceIds ?? []).filter((id) => ids.has(id)) };
+  }
+
+  async translate(input: TranslateInput): Promise<{ subject?: string; text: string }> {
+    const out = parseJsonObject<{ subject?: string | null; text: string }>(await this.chat(TRANSLATE_SYSTEM, translateUserPrompt(input), 'json'));
+    return { subject: out.subject ?? undefined, text: out.text };
+  }
+
+  async compose(input: ComposeInput): Promise<{ subject: string; body: string }> {
+    return parseJsonObject(await this.chat(COMPOSE_SYSTEM, composeUserPrompt(input), 'json'));
   }
 }

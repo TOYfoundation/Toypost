@@ -11,7 +11,11 @@ import {
   type Deadline,
   type DocumentSummary,
   type Payment,
+  type SafetyNote,
+  type ToyRequest,
 } from '../shared.ts';
+import { listMessages } from './messages.ts';
+import { invoiceForCase } from './invoices.ts';
 
 export interface CaseRow {
   id: string;
@@ -27,6 +31,9 @@ export interface CaseRow {
   confidence: number;
   follow_up_on: string | null;
   assignee_user_id: string | null;
+  contact_id: string | null;
+  safety_json: string | null;
+  toy_request_json: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +87,12 @@ function toSummary(db: Db, r: CaseRow): CaseSummary {
     assigneeName: assignee,
     confidence: r.confidence,
     followUpOn: r.follow_up_on ?? undefined,
+    contact: r.contact_id
+      ? (db.prepare('SELECT id, name FROM contacts WHERE id = ?').get(r.contact_id) as { id: string; name: string } | undefined)
+      : undefined,
+    safety: r.safety_json ? (JSON.parse(r.safety_json) as SafetyNote[]) : undefined,
+    toyRequest: r.toy_request_json ? (JSON.parse(r.toy_request_json) as ToyRequest) : undefined,
+    toyInvoice: invoiceForCase(db, r.id),
   };
 }
 
@@ -108,6 +121,7 @@ export function getCaseDetail(db: Db, accountId: string, id: string): CaseDetail
   return {
     ...toSummary(db, row),
     documents: docs.map(docToSummary),
+    messages: listMessages(db, row.account_id, { caseId: row.id, limit: 100 }),
     timeline,
     draft: draft ? { id: draft.id, subject: draft.subject, body: draft.body, createdAt: draft.created_at } : undefined,
   };

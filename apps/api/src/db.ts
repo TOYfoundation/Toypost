@@ -137,6 +137,141 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  // ---------- ToyPost: Kanäle, Kontakte, Nachrichten, Automationen, Toy-Anbindung ----------
+  `
+  ALTER TABLE cases ADD COLUMN contact_id TEXT;
+  ALTER TABLE cases ADD COLUMN safety_json TEXT;
+  ALTER TABLE cases ADD COLUMN toy_request_json TEXT;
+  CREATE TABLE contacts (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    name TEXT NOT NULL,
+    language TEXT NOT NULL DEFAULT 'de',
+    toy_address TEXT,
+    tags_json TEXT NOT NULL DEFAULT '[]',
+    preferred_channel_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX contacts_account ON contacts(account_id);
+  CREATE TABLE contact_handles (
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    contact_id TEXT NOT NULL REFERENCES contacts(id),
+    kind TEXT NOT NULL,
+    handle TEXT NOT NULL,
+    PRIMARY KEY (account_id, kind, handle)
+  );
+  CREATE TABLE channels (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+    config_enc TEXT NOT NULL,
+    inbound_token TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    last_poll_at TEXT,
+    last_error TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX channels_account ON channels(account_id);
+  CREATE TABLE messages (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    channel_id TEXT,
+    channel_kind TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    contact_id TEXT,
+    case_id TEXT,
+    document_id TEXT,
+    external_id TEXT,
+    thread_key TEXT,
+    subject TEXT,
+    body TEXT NOT NULL,
+    attachments_json TEXT NOT NULL DEFAULT '[]',
+    safety_json TEXT NOT NULL DEFAULT '[]',
+    language TEXT,
+    status TEXT NOT NULL,
+    error TEXT,
+    broadcast_id TEXT,
+    created_at TEXT NOT NULL,
+    sent_at TEXT
+  );
+  CREATE INDEX messages_account_created ON messages(account_id, created_at);
+  CREATE INDEX messages_case ON messages(case_id);
+  CREATE UNIQUE INDEX messages_external ON messages(account_id, channel_id, external_id) WHERE external_id IS NOT NULL;
+  CREATE TABLE broadcasts (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    audience_tag TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    source TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft',
+    created_by TEXT,
+    approved_by TEXT,
+    created_at TEXT NOT NULL,
+    sent_at TEXT
+  );
+  CREATE TABLE automations (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    name TEXT NOT NULL,
+    trigger TEXT NOT NULL,
+    conditions_json TEXT NOT NULL DEFAULT '[]',
+    actions_json TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    runs INTEGER NOT NULL DEFAULT 0,
+    last_run_at TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE automation_log (
+    id TEXT PRIMARY KEY,
+    automation_id TEXT NOT NULL REFERENCES automations(id),
+    event_type TEXT NOT NULL,
+    result TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE toy_invoices (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id),
+    case_id TEXT,
+    contact_id TEXT,
+    code TEXT NOT NULL,
+    address TEXT NOT NULL,
+    amount_units TEXT NOT NULL,
+    paid_units TEXT NOT NULL DEFAULT '0',
+    purpose TEXT NOT NULL,
+    note TEXT,
+    valid_until TEXT,
+    status TEXT NOT NULL DEFAULT 'open',
+    payments_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    paid_at TEXT
+  );
+  CREATE UNIQUE INDEX toy_invoices_purpose ON toy_invoices(account_id, purpose);
+  CREATE TABLE wallet_links (
+    address TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE siwe_nonces (
+    nonce TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE watch_state (
+    account_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (account_id, key)
+  );
+  CREATE TABLE seen_items (
+    channel_id TEXT NOT NULL,
+    item_key TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (channel_id, item_key)
+  );
+  `,
 ];
 
 export type Db = DatabaseSync;

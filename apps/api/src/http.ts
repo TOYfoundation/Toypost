@@ -22,6 +22,8 @@ export interface Request {
   rawBody: string;
   body: any;
   ip: string;
+  /** public URL of this request (for services that sign the URL, e.g. Twilio) */
+  url: string;
 }
 
 export type Handler = (req: Request) => Promise<unknown> | unknown;

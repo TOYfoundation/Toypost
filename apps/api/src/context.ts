@@ -5,6 +5,7 @@ import type { AiProvider } from './ai/provider.ts';
 import type { PaymentProvider } from './billing/provider.ts';
 import type { IntegrationStore } from './integrations/store.ts';
 import type { Delivery } from './services/delivery.ts';
+import type { ChannelStore } from './channels/store.ts';
 
 export interface Context {
   config: Config;
@@ -14,6 +15,7 @@ export interface Context {
   payments: PaymentProvider;
   integrations: IntegrationStore;
   delivery: Delivery;
+  channels: ChannelStore;
   /** Zeitquelle, in Tests überschreibbar */
   now: () => Date;
   log: (msg: string, extra?: unknown) => void;

@@ -12,7 +12,7 @@ import {
   type DavWrite,
   type NextcloudConfig,
 } from '../integrations/nextcloud.ts';
-import { todayIso, type CaseSummary, type Deadline } from '../shared.ts';
+import { todayIso, type CaseSummary, type Deadline, type MessageSummary, type SafetyNote, type ToyInvoiceSummary } from '../shared.ts';
 
 /**
  * Verteilt Ergebnisse an Nextcloud.
@@ -25,7 +25,24 @@ export type ToyPostEvent =
   | { type: 'document.analyzed'; caseId: string; documentId: string; usedAi: boolean; case: CaseSummary }
   | { type: 'deadline.detected'; caseId: string; caseTitle: string; deadline: Deadline }
   | { type: 'draft.created'; caseId: string; caseTitle: string; draftId: string; subject: string; body: string }
-  | { type: 'case.updated'; case: CaseSummary };
+  | { type: 'case.updated'; case: CaseSummary }
+  // ---------- ToyPost ----------
+  | { type: 'message.received'; message: MessageSummary; caseId?: string; contactId?: string }
+  | { type: 'message.sent'; message: MessageSummary }
+  | {
+      type: 'toy.payment.received';
+      invoice: ToyInvoiceSummary;
+      transfer: { hash: string; from: string; amount: string; purpose?: string };
+      caseId?: string;
+      contactId?: string;
+    }
+  | { type: 'toy.ampel.changed'; from?: string; to: string; bigRedLamp: boolean; criteria: { id: string; color: string; note?: string }[]; url: string }
+  | { type: 'project.milestone'; repo: string; milestone: { id: string; title: string; status: string; done: boolean }; url: string }
+  | { type: 'project.release'; repo: string; tag: string; name: string; notes: string; url: string }
+  | { type: 'feed.item'; channelId: string; feed: string; item: { key: string; title: string; link?: string; text: string; date?: string } }
+  | { type: 'safety.warning'; findings: SafetyNote[]; caseId?: string; messageId?: string };
+
+export type EventType = ToyPostEvent['type'];
 
 /** Welche Nextcloud-Änderungen ein Ereignis auslöst. Rein, ohne Netzwerk – deshalb gut testbar. */
 export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: string): DavWrite[] {
@@ -47,6 +64,8 @@ export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: s
           content: `# ${event.subject}\n\n${event.body}\n`,
         },
       ];
+    default:
+      return [];
     case 'case.updated': {
       const c = event.case;
       const writes = [ics(taskUid(c.id), buildTaskIcs(c, link))];
@@ -59,8 +78,9 @@ export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: s
   }
 }
 
-function caseIdOf(event: ToyPostEvent): string {
-  return event.type === 'case.updated' ? event.case.id : event.caseId;
+function caseIdOf(event: ToyPostEvent): string | undefined {
+  if (event.type === 'case.updated') return event.case.id;
+  return 'caseId' in event ? event.caseId : undefined;
 }
 
 export class Delivery {
@@ -69,6 +89,12 @@ export class Delivery {
   private readonly signingSecret: (accountId: string) => string;
   private readonly linkFor: (accountId: string, caseId: string) => string | undefined;
   readonly pending = new Set<Promise<void>>();
+  private readonly listeners: ((accountId: string, event: ToyPostEvent) => Promise<void> | void)[] = [];
+
+  /** Internal listeners (automations). Errors are logged and never stop delivery. */
+  on(listener: (accountId: string, event: ToyPostEvent) => Promise<void> | void): void {
+    this.listeners.push(listener);
+  }
 
   constructor(
     integrations: IntegrationStore,
@@ -88,15 +114,24 @@ export class Delivery {
       .catch((e: Error) => this.log(`Zustellung ${event.type} fehlgeschlagen: ${e.message}`))
       .finally(() => this.pending.delete(p));
     this.pending.add(p);
+    for (const l of this.listeners) {
+      const q = Promise.resolve()
+        .then(() => l(accountId, event))
+        .catch((e: Error) => this.log(`Automation bei ${event.type} fehlgeschlagen: ${e.message}`))
+        .finally(() => this.pending.delete(q));
+      this.pending.add(q);
+    }
   }
 
+  /** Waits until all deliveries, including those started by listeners, are done. */
   async settle(): Promise<void> {
-    await Promise.all([...this.pending]);
+    while (this.pending.size) await Promise.all([...this.pending]);
   }
 
   private async deliver(accountId: string, event: ToyPostEvent): Promise<void> {
     const nc = this.integrations.get(accountId, 'nextcloud');
-    const davWrites = nc ? davWritesFor(event, nc, this.linkFor(accountId, caseIdOf(event))) : [];
+    const caseId = caseIdOf(event);
+    const davWrites = nc ? davWritesFor(event, nc, caseId ? this.linkFor(accountId, caseId) : undefined) : [];
     const n8n = this.integrations.get(accountId, 'n8n');
     if (n8n) {
       const body = JSON.stringify({ accountId, at: new Date().toISOString(), ...event, davWrites });

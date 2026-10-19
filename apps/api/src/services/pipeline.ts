@@ -8,7 +8,20 @@ import { heuristicAnalysis, matchCaseByRules, type CaseCandidate } from '../ai/p
 import { refundCredits, spendCredits } from './credits.ts';
 import { addTimeline, applyAnalysis, createCase, getCaseRow, getCaseSummary, type CaseRow } from './cases.ts';
 import type { AccountRow } from './accounts.ts';
-import { storageLimitBytes, todayIso, type Analysis, type Channel, type DocumentKind } from '../shared.ts';
+import {
+  checkSafety,
+  detectToyRequest,
+  redactSecrets,
+  storageLimitBytes,
+  todayIso,
+  toyDecimal,
+  type Analysis,
+  type Channel,
+  type DocumentKind,
+  type SafetyNote,
+  type ToyRequest,
+} from '../shared.ts';
+import { knownAddresses, ownAddresses } from './contacts.ts';
 
 export interface IngestInput {
   text: string;
@@ -25,6 +38,10 @@ export interface IngestInput {
   premiumOcr?: boolean;
   /** Altbestand-Import: günstiger, wird nachts verarbeitet */
   bulkImport?: boolean;
+  /** Vorgang steht schon fest (z. B. dieselbe Unterhaltung im Messenger) */
+  caseId?: string;
+  /** Kontakt, von dem die Nachricht kam */
+  contactId?: string;
 }
 
 export interface IngestResult {
@@ -35,6 +52,15 @@ export interface IngestResult {
   matchedRule: boolean;
   creditsSpent: number;
   analysis: Analysis;
+  safety: SafetyNote[];
+  toyRequest?: ToyRequest;
+}
+
+/** Merges new warnings into a case without duplicates. */
+export function mergeSafety(existingJson: string | null, add: SafetyNote[]): string | null {
+  const list = existingJson ? (JSON.parse(existingJson) as SafetyNote[]) : [];
+  for (const f of add) if (!list.some((x) => x.code === f.code && x.message === f.message)) list.push(f);
+  return list.length ? JSON.stringify(list) : null;
 }
 
 interface RuleRow {
@@ -52,10 +78,19 @@ function findRule(ctx: Context, accountId: string, text: string): RuleRow | unde
   return rules.find((r) => lower.includes(r.match_text.toLowerCase()));
 }
 
-export async function ingestDocument(ctx: Context, account: AccountRow, userId: string | null, input: IngestInput): Promise<IngestResult> {
+export async function ingestDocument(ctx: Context, account: AccountRow, userId: string | null, inputRaw: IngestInput): Promise<IngestResult> {
+  let input = inputRaw;
   const { db } = ctx;
   const now = ctx.now();
   const today = todayIso(now);
+  // Safety first, on the original text; afterwards secrets are removed before anything is stored or sent to an AI.
+  const findings = checkSafety({ text: input.text, direction: 'in', knownAddresses: knownAddresses(db, account.id) });
+  const safety: SafetyNote[] = findings.map((f) => ({ code: f.code, severity: f.severity, message: f.message }));
+  const detected = detectToyRequest(input.text, ownAddresses(db, account.id));
+  const toyRequest: ToyRequest | undefined = detected
+    ? { address: detected.address, amount: detected.amount?.toString(), purpose: detected.purpose, link: detected.link }
+    : undefined;
+  input = { ...input, text: redactSecrets(input.text) };
   const letterDate = input.letterDate ?? today;
 
   // 1. Speicher prüfen: volle Konten bleiben lesbar, nur neue Uploads pausieren.
@@ -79,6 +114,10 @@ export async function ingestDocument(ctx: Context, account: AccountRow, userId: 
   let usedAi = false;
   let creditsSpent = 0;
 
+  if (input.caseId) {
+    // known conversation: no AI needed to find the case, but analysis still runs below for deadlines and amounts
+    getCaseRow(db, account.id, input.caseId);
+  }
   if (rule) {
     analysis = { ...analysis, correspondent: rule.correspondent, kind: rule.kind, confidence: 0.9 };
     caseId = rule.case_id && candidates.some((c) => c.id === rule.case_id) ? rule.case_id : matchCaseByRules(analysis, candidates);
@@ -100,6 +139,18 @@ export async function ingestDocument(ctx: Context, account: AccountRow, userId: 
       creditsSpent = 0;
       caseId = matchCaseByRules(analysis, candidates);
     }
+  }
+
+  if (input.caseId) caseId = input.caseId;
+  if (toyRequest && !analysis.nextAction) {
+    analysis = {
+      ...analysis,
+      actionRequired: true,
+      nextAction: toyRequest.amount ? `${toyDecimal(BigInt(toyRequest.amount))} TOY in der TOYPAY Wallet prüfen und zahlen` : 'TOY-Zahlung in der TOYPAY Wallet prüfen',
+    };
+  }
+  if (safety.some((f) => f.severity !== 'yellow')) {
+    analysis = { ...analysis, actionRequired: true, nextAction: 'Warnung lesen: möglicher Betrug' };
   }
 
   // 5. Datei ablegen (nur wenn kein Paperless die Datei hält)
@@ -145,6 +196,13 @@ export async function ingestDocument(ctx: Context, account: AccountRow, userId: 
       nowIso(),
     );
     db.prepare('UPDATE accounts SET storage_used_bytes = storage_used_bytes + ? WHERE id = ?').run(input.sizeBytes, account.id);
+    const current = db.prepare('SELECT safety_json, contact_id FROM cases WHERE id = ?').get(row.id) as { safety_json: string | null; contact_id: string | null };
+    db.prepare('UPDATE cases SET safety_json = ?, contact_id = COALESCE(contact_id, ?), toy_request_json = COALESCE(?, toy_request_json) WHERE id = ?').run(
+      mergeSafety(current.safety_json, safety),
+      input.contactId ?? null,
+      toyRequest ? JSON.stringify(toyRequest) : null,
+      row.id,
+    );
     addTimeline(db, row.id, `Eingegangen: ${analysis.title}${analysis.actionRequired && analysis.nextAction ? ` – ${analysis.nextAction}` : ''}`);
     return { caseRow: row, created };
   });
@@ -156,7 +214,9 @@ export async function ingestDocument(ctx: Context, account: AccountRow, userId: 
     ctx.delivery.emit(account.id, { type: 'deadline.detected', caseId: caseRow.id, caseTitle: summary.title, deadline: summary.deadline });
   }
 
-  return { documentId, caseId: caseRow.id, createdCase: created, usedAi, matchedRule: !!rule, creditsSpent, analysis };
+  if (safety.length) ctx.delivery.emit(account.id, { type: 'safety.warning', findings: safety, caseId: caseRow.id });
+
+  return { documentId, caseId: caseRow.id, createdCase: created, usedAi, matchedRule: !!rule, creditsSpent, analysis, safety, toyRequest };
 }
 
 /**

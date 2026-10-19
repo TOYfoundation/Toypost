@@ -9,6 +9,8 @@ import { createPaymentProvider, type PaymentProvider } from './billing/provider.
 import { IntegrationStore } from './integrations/store.ts';
 import { Delivery } from './services/delivery.ts';
 import { buildRouter } from './routes.ts';
+import { ChannelStore } from './channels/store.ts';
+import { runAutomations } from './services/automations.ts';
 
 export interface AppOptions {
   db?: Db;
@@ -45,9 +47,11 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
     payments: opts.payments ?? createPaymentProvider(config),
     integrations,
     delivery,
+    channels: new ChannelStore(db, keys),
     now: opts.now ?? (() => new Date()),
     log,
   };
+  delivery.on((accountId, event) => runAutomations(ctx, accountId, event));
   const router = buildRouter(ctx);
 
   const corsOrigin = (origin: string | undefined) => {
@@ -74,10 +78,15 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
       const rawBody = ['POST', 'PUT', 'PATCH'].includes(req.method ?? '') ? await readBody(req) : '';
       let body: unknown = undefined;
       if (rawBody) {
-        try {
-          body = JSON.parse(rawBody);
-        } catch {
-          throw new HttpError(400, 'invalid_json', 'Der Inhalt ist kein gültiges JSON.');
+        // SMS services such as Twilio post form data instead of JSON
+        if (String(req.headers['content-type'] ?? '').startsWith('application/x-www-form-urlencoded')) {
+          body = Object.fromEntries(new URLSearchParams(rawBody));
+        } else {
+          try {
+            body = JSON.parse(rawBody);
+          } catch {
+            throw new HttpError(400, 'invalid_json', 'Der Inhalt ist kein gültiges JSON.');
+          }
         }
       }
       const result = await match.handler({
@@ -88,6 +97,7 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
         headers: req.headers,
         rawBody,
         body,
+        url: `${config.publicUrl.replace(/\/$/, '')}${req.url ?? '/'}`,
         ip: String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '').split(',')[0].trim(),
       });
       sendJson(res, 200, result, cors);

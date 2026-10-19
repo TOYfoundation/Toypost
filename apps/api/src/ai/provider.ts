@@ -47,12 +47,43 @@ export interface AskSource {
   text: string;
 }
 
+export interface TranslateInput {
+  subject?: string;
+  text: string;
+  /** language code from the shared Toy list, e.g. "sw" */
+  targetLang: string;
+  /** native name, e.g. "Kiswahili" */
+  targetLangName: string;
+  /** fixed terms of the Toy projects (glossaryHint), may be empty */
+  glossary: string;
+}
+
+/** Facts for an announcement or notice that ToyPost writes itself (milestone, release, incident, report). */
+export interface ComposeInput {
+  purpose: 'milestone' | 'release' | 'incident' | 'report' | 'payment_thanks' | 'security_reply';
+  /** plain facts, one per line; the model must not add anything */
+  facts: string[];
+  senderName: string;
+  tone: 'sachlich' | 'freundlich' | 'bestimmt';
+}
+
 export interface AiProvider {
   readonly name: string;
   analyze(input: AnalyzeInput): Promise<AnalyzeResult>;
   draft(input: DraftInput): Promise<{ subject: string; body: string }>;
   answer(question: string, sources: AskSource[]): Promise<{ answer: string; sourceIds: string[] }>;
+  translate(input: TranslateInput): Promise<{ subject?: string; text: string }>;
+  compose(input: ComposeInput): Promise<{ subject: string; body: string }>;
 }
+
+const COMPOSE_SUBJECT: Record<ComposeInput['purpose'], (first: string) => string> = {
+  milestone: (f) => `Fortschritt: ${f}`,
+  release: (f) => `Neue Version: ${f}`,
+  incident: (f) => `Wichtig: ${f}`,
+  report: (f) => `Bericht: ${f}`,
+  payment_thanks: () => 'Zahlung eingegangen – danke!',
+  security_reply: () => 'Danke für deine Sicherheitsmeldung',
+};
 
 export class MockProvider implements AiProvider {
   readonly name = 'mock';
@@ -68,6 +99,16 @@ export class MockProvider implements AiProvider {
       subject: `${intent} – ${input.caseTitle}${ref ? ` (${input.reference})` : ''}`,
       body: `Sehr geehrte Damen und Herren,${ref}\n\nbezugnehmend auf Ihr Schreiben vom ${input.documents[0]?.date ?? '…'} möchte ich Folgendes mitteilen: ${intent}.\n\nBitte bestätigen Sie mir den Eingang dieses Schreibens.\n\nMit freundlichen Grüßen\n${input.senderName}`,
     };
+  }
+
+  /** Without a model nothing is translated; the language tag shows readers and tests what was requested. */
+  async translate(input: TranslateInput): Promise<{ subject?: string; text: string }> {
+    if (input.targetLang === 'de') return { subject: input.subject, text: input.text };
+    return { subject: input.subject ? `[${input.targetLang}] ${input.subject}` : undefined, text: `[${input.targetLang}] ${input.text}` };
+  }
+
+  async compose(input: ComposeInput): Promise<{ subject: string; body: string }> {
+    return { subject: COMPOSE_SUBJECT[input.purpose](input.facts[0] ?? ''), body: `${input.facts.join('\n')}\n\n${input.senderName}` };
   }
 
   async answer(question: string, sources: AskSource[]): Promise<{ answer: string; sourceIds: string[] }> {
