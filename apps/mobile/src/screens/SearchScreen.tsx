@@ -48,7 +48,7 @@ export function SearchScreen() {
   };
 
   return (
-    <Screen title="Suche">
+    <Screen title="Suche" onBack={nav.back}>
       <Field label="Suchen" placeholder="Absender, Betreff, Nummer oder Text" value={q} onChangeText={setQ} autoFocus returnKeyType="search" hint="Suchen ist immer kostenlos." />
       {cases ? (
         cases.length ? (

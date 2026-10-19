@@ -24,6 +24,13 @@ const shots = [
   { name: 'verbindungen', route: '/integrationen', w: 390, h: 1500 },
   { name: 'anmelden', route: '/anmelden', w: 390, h: 844 },
   { name: 'heute-desktop', route: '/', w: 1280, h: 900 },
+  { name: 'posteingang', route: '/posteingang', w: 390, h: 1100 },
+  { name: 'posteingang-dunkel', route: '/posteingang', w: 390, h: 1100, dark: true },
+  { name: 'vorgang-toy-zahlung', route: '/vorgang/demo_anna', w: 390, h: 1900 },
+  { name: 'vorgang-betrug', route: '/vorgang/demo_phishing', w: 390, h: 1300 },
+  { name: 'toy-projekte', route: '/toy', w: 390, h: 3400 },
+  { name: 'toy-projekte-desktop', route: '/toy', w: 1280, h: 2600 },
+  { name: 'kanaele', route: '/kanaele', w: 390, h: 2400 },
 ];
 
 const browser = await chromium.launch();

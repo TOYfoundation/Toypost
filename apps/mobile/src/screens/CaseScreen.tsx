@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { addDays, formatDateDe, formatEuro, formatIban, relativeDueDe, todayIso, type CaseDetail } from '@toypost/shared';
 import { Button, Card, Chip, Divider, Field, Icon, Loading, Notice, Row, Screen, Section } from '../components/base.tsx';
 import { DeadlineStamp } from '../components/case.tsx';
+import { ChannelBadge, CHANNEL_NAME, formatTime, Pill, SafetyNotes, ToyPaymentCard } from '../components/toy.tsx';
 import { useNav, useParam } from '../nav.ts';
 import { useLoad, useSession } from '../session.tsx';
 import { space, type, usePalette, useStyles, type Palette } from '../theme.ts';
@@ -17,7 +18,22 @@ const STATUS_LABEL: Record<CaseDetail['status'], string> = {
   done: 'Erledigt',
 };
 
-const CHANNEL_LABEL = { scan: 'Scan', mail: 'E-Mail', upload: 'Upload', nextcloud: 'Nextcloud' } as const;
+const CHANNEL_LABEL: Record<string, string> = {
+  scan: 'Scan',
+  mail: 'E-Mail',
+  upload: 'Upload',
+  nextcloud: 'Nextcloud',
+  email: 'E-Mail',
+  telegram: 'Telegram',
+  matrix: 'Matrix',
+  signal: 'Signal',
+  sms: 'SMS',
+  talk: 'Talk',
+  webhook: 'Webhook',
+  feed: 'Feed',
+  github: 'GitHub',
+  toyscan: 'ToyScan',
+};
 
 const styles = (p: Palette) =>
   StyleSheet.create({
@@ -73,6 +89,7 @@ export function CaseScreen() {
   if (error || !c) return <Screen onBack={nav.back}><Notice tone="error">{error ?? 'Vorgang nicht gefunden.'}</Notice></Screen>;
 
   const isFollowUp = c.status === 'waiting';
+  const isScam = (c.safety ?? []).some((f) => f.severity !== 'yellow');
 
   return (
     <Screen onBack={nav.back}>
@@ -85,9 +102,16 @@ export function CaseScreen() {
           <Text style={s.status}>
             {STATUS_LABEL[c.status]}
             {c.reference ? ` · ${c.reference}` : ''}
+            {c.contact && c.contact.name !== c.correspondent ? ` · ${c.contact.name}` : ''}
           </Text>
         </View>
       </View>
+
+      {c.safety?.length ? (
+        <View style={{ marginBottom: space.md }}>
+          <SafetyNotes notes={c.safety} />
+        </View>
+      ) : null}
 
       <Card>
         <Text style={s.summary}>{c.summary}</Text>
@@ -153,7 +177,54 @@ export function CaseScreen() {
         </Section>
       ) : null}
 
-      <Section title={isFollowUp ? 'Erinnerung schreiben' : 'Antwort'} meta="5 Credits">
+      {c.toyRequest && c.status === 'action' ? (
+        <Section title="TOY-Zahlung" meta="über TOYPAY">
+          <Card>
+            <ToyPaymentCard
+              link={c.toyRequest.link}
+              address={c.toyRequest.address}
+              amount={c.toyRequest.amount}
+              purpose={c.toyRequest.purpose}
+              hint="ToyPost zahlt nie selbst. Der Link öffnet deine TOYPAY Wallet; prüfe dort Adresse und Betrag, bevor du unterschreibst."
+              onMessage={(t) => setMessage({ tone: 'success', text: t })}
+            />
+            <View style={s.actions}>
+              <Button small variant="secondary" icon="check" label="Bezahlt" busy={busy === 'paid'} onPress={() => run('paid', () => api.markPaid(c.id), 'Als bezahlt markiert und abgelegt.')} />
+            </View>
+          </Card>
+        </Section>
+      ) : null}
+
+      {c.toyInvoice ? (
+        <Section title="Deine TOY-Rechnung" meta={c.toyInvoice.code}>
+          <Card>
+            <Pill
+              label={{ open: 'Offen', partial: 'Teilweise bezahlt', paid: 'Bezahlt', expired: 'Abgelaufen' }[c.toyInvoice.status]}
+              tone={{ open: 'blue', partial: 'yellow', paid: 'green', expired: 'grey' }[c.toyInvoice.status] as 'blue'}
+            />
+            {c.toyInvoice.status !== 'paid' ? (
+              <View style={{ marginTop: space.md }}>
+                <ToyPaymentCard
+                  link={c.toyInvoice.link}
+                  address={c.toyInvoice.address}
+                  amount={(BigInt(c.toyInvoice.amount) - BigInt(c.toyInvoice.paid)).toString()}
+                  purpose={c.toyInvoice.purpose}
+                  hint="Sobald ToyScan die Zahlung mit diesem Verwendungszweck meldet, schließt ToyPost den Vorgang."
+                  onMessage={(t) => setMessage({ tone: 'success', text: t })}
+                />
+              </View>
+            ) : null}
+          </Card>
+        </Section>
+      ) : null}
+
+      {isScam ? (
+        <Section title="Was jetzt?">
+          <Notice tone="warning">Nicht antworten, keine Links öffnen, nichts zahlen. Echte Stellen fragen nie nach Phrase oder Schlüssel. Markiere den Vorgang als erledigt; die Nachricht bleibt zur Beweissicherung gespeichert.</Notice>
+        </Section>
+      ) : null}
+
+      {isScam ? null : <Section title={isFollowUp ? 'Erinnerung schreiben' : 'Antwort'} meta="5 Credits">
         {c.draft ? (
           <Card>
             <Text style={s.draftSubject}>{c.draft.subject}</Text>
@@ -171,7 +242,23 @@ export function CaseScreen() {
                   setMessage({ tone: 'success', text: 'Entwurf kopiert.' });
                 }}
               />
-              <Button small icon="send" label="Als versendet markieren" busy={busy === 'send'} onPress={() => run('send', () => api.sendDraft(c.draft!.id), 'Versendet. ToyPost erinnert dich in 14 Tagen, falls keine Antwort kommt.')} />
+              {c.contact ? (
+                <Button
+                  small
+                  icon="send"
+                  label={`An ${c.contact.name} senden`}
+                  busy={busy === 'sendVia'}
+                  onPress={() => run('sendVia', () => api.sendDraft(c.draft!.id, ''), `Über den Kanal von ${c.contact!.name} gesendet. ToyPost erinnert dich in 14 Tagen.`)}
+                />
+              ) : null}
+              <Button
+                small
+                variant={c.contact ? 'quiet' : 'primary'}
+                icon="check"
+                label="Als versendet markieren"
+                busy={busy === 'send'}
+                onPress={() => run('send', () => api.sendDraft(c.draft!.id), 'Versendet. ToyPost erinnert dich in 14 Tagen, falls keine Antwort kommt.')}
+              />
             </View>
           </Card>
         ) : (
@@ -206,9 +293,38 @@ export function CaseScreen() {
             </View>
           </Card>
         )}
-      </Section>
+      </Section>}
 
-      <Section title="Dokumente" meta={`${c.documents.length}`}>
+      {c.messages?.length ? (
+        <Section title="Nachrichten" meta={`${c.messages.length}`}>
+          <Card style={{ paddingVertical: 0 }}>
+            {c.messages.map((m, i) => (
+              <View key={m.id}>
+                {i > 0 ? <Divider /> : null}
+                <View style={{ flexDirection: 'row', gap: space.md, paddingVertical: space.md }}>
+                  <ChannelBadge kind={m.channelKind} direction={m.direction} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[type.small, { color: p.inkMuted }]}>
+                      {m.direction === 'out' ? 'Gesendet' : 'Eingegangen'} {formatTime(m.createdAt)} · {CHANNEL_NAME[m.channelKind]}
+                    </Text>
+                    {m.subject ? <Text style={[type.label, { color: p.ink }]}>{m.subject}</Text> : null}
+                    <Text selectable style={[type.small, { color: p.ink, marginTop: 2 }]}>
+                      {m.body}
+                    </Text>
+                    {m.status === 'failed' || m.status === 'blocked' ? (
+                      <View style={{ marginTop: space.xs }}>
+                        <Pill label={m.status === 'blocked' ? 'Blockiert' : `Nicht gesendet: ${m.error ?? ''}`} tone="red" />
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </Card>
+        </Section>
+      ) : null}
+
+      {c.documents.length ? <Section title="Dokumente" meta={`${c.documents.length}`}>
         <Card style={{ paddingVertical: 0 }}>
           {c.documents.map((d, i) => (
             <View key={d.id}>
@@ -226,7 +342,7 @@ export function CaseScreen() {
             </View>
           ))}
         </Card>
-      </Section>
+      </Section> : null}
 
       <Section title="Verlauf">
         <View>

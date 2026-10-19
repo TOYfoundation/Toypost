@@ -3,13 +3,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { radius, space, type, usePalette, useStyles, type Palette } from '../theme.ts';
 import { Icon, type IconName } from './base.tsx';
 
-export type TabKey = 'index' | 'vorgaenge' | 'scannen' | 'suche' | 'konto';
+export type TabKey = 'index' | 'vorgaenge' | 'scannen' | 'posteingang' | 'konto';
 
 export const TABS: { key: TabKey; label: string; icon: IconName }[] = [
   { key: 'index', label: 'Heute', icon: 'sun' },
   { key: 'vorgaenge', label: 'Vorgänge', icon: 'layers' },
   { key: 'scannen', label: 'Erfassen', icon: 'plus' },
-  { key: 'suche', label: 'Suche', icon: 'search' },
+  { key: 'posteingang', label: 'Posteingang', icon: 'inbox' },
   { key: 'konto', label: 'Konto', icon: 'user' },
 ];
 

@@ -210,6 +210,7 @@ export function buildDemoCases(today: string): CaseDetail[] {
             ]
           : []),
       ],
+      messages: [],
       timeline: timeline.reverse(),
     };
   });

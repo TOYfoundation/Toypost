@@ -37,7 +37,8 @@ export class HttpApi implements Api {
   markPaid = (id: string) => this.call<any>('POST', `/v1/cases/${encodeURIComponent(id)}/paid`, {});
   giroCode = (id: string) => this.call<any>('GET', `/v1/cases/${encodeURIComponent(id)}/girocode`);
   createDraft = (id: string, input: object) => this.call<any>('POST', `/v1/cases/${encodeURIComponent(id)}/draft`, input);
-  sendDraft = (draftId: string) => this.call<any>('POST', `/v1/drafts/${encodeURIComponent(draftId)}/send`, {});
+  sendDraft = (draftId: string, channelId?: string) =>
+    this.call<any>('POST', `/v1/drafts/${encodeURIComponent(draftId)}/send`, channelId === undefined ? {} : { channelId });
   upload = (input: object) => this.call<any>('POST', '/v1/documents', input);
   search = (q: string) => this.call<any>('GET', `/v1/search?q=${encodeURIComponent(q)}`);
   ask = (question: string) => this.call<any>('POST', '/v1/ask', { question });
@@ -46,6 +47,21 @@ export class HttpApi implements Api {
   checkout = (input: object) => this.call<any>('POST', '/v1/billing/checkout', input);
   integrations = () => this.call<any>('GET', '/v1/integrations');
   saveIntegration = (kind: IntegrationKind, config: Record<string, string>) => this.call<any>('PUT', `/v1/integrations/${kind}`, config);
+  // ToyPost
+  messages = (filter: { direction?: 'in' | 'out' } = {}) => this.call<any>('GET', `/v1/messages${filter.direction ? `?direction=${filter.direction}` : ''}`);
+  contacts = (q?: string) => this.call<any>('GET', `/v1/contacts${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+  channels = () => this.call<any>('GET', '/v1/channels');
+  createChannel = (input: object) => this.call<any>('POST', '/v1/channels', input);
+  testChannel = (id: string, to?: string) => this.call<any>('POST', `/v1/channels/${encodeURIComponent(id)}/test`, to ? { to } : {});
+  toyOverview = () => this.call<any>('GET', '/v1/toy/overview');
+  broadcasts = () => this.call<any>('GET', '/v1/broadcasts');
+  previewBroadcast = (id: string, lang: string) => this.call<any>('GET', `/v1/broadcasts/${encodeURIComponent(id)}/preview?lang=${encodeURIComponent(lang)}`);
+  sendBroadcast = (id: string) => this.call<any>('POST', `/v1/broadcasts/${encodeURIComponent(id)}/send`, {});
+  discardBroadcast = (id: string) => this.call<any>('POST', `/v1/broadcasts/${encodeURIComponent(id)}/discard`, {});
+  createInvoice = (input: object) => this.call<any>('POST', '/v1/toy/invoices', input);
+  checkText = (text: string) => this.call<any>('POST', '/v1/toy/check', { text });
+  automations = () => this.call<any>('GET', '/v1/automations');
+  installPreset = (id: string, ids: object) => this.call<any>('POST', `/v1/automations/presets/${encodeURIComponent(id)}`, ids);
 }
 
 async function request<T>(baseUrl: string, method: string, path: string, token?: string, body?: unknown): Promise<T> {

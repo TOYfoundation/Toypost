@@ -83,7 +83,11 @@ export function AccountScreen() {
 
       <Section title="Einstellungen">
         <Card style={{ paddingVertical: 0 }}>
-          <Row label="Verbindungen" onPress={() => nav.go('/integrationen')} />
+          <Row label="Kanäle: E-Mail, Messenger, SMS, Feeds" onPress={() => nav.go('/kanaele')} />
+          <Divider />
+          <Row label="Toy-Projekte" onPress={() => nav.go('/toy')} />
+          <Divider />
+          <Row label="Verbindungen: Paperless, Nextcloud, n8n" onPress={() => nav.go('/integrationen')} />
           <Divider />
           <Row label="Credits und Verlauf" onPress={() => nav.go('/credits')} />
           <Divider />

@@ -17,7 +17,24 @@ import {
   type CaseDetail,
   type CaseStatus,
   type PlanId,
+  checkSafety,
+  detectToyRequest,
+  toyLanguage,
+  type MessageSummary,
 } from '@toypost/shared';
+import {
+  DEMO_CHANNEL_KINDS,
+  DEMO_PRESETS,
+  demoAutomations,
+  demoBroadcasts,
+  demoChannels,
+  demoContacts,
+  demoFeedMessages,
+  demoInvoice,
+  demoOverview,
+  demoToyCases,
+} from './demo-toy.ts';
+import type { AutomationInfo, BroadcastInfo, ChannelInfo } from './types.ts';
 import type { Api, IntegrationKind, IntegrationState, LedgerEntry, Me, UploadInput } from './types.ts';
 import { ApiError } from './types.ts';
 
@@ -28,7 +45,12 @@ import { ApiError } from './types.ts';
 export class DemoApi implements Api {
   readonly mode = 'demo' as const;
   private day = todayIso();
-  private store: CaseDetail[] = buildDemoCases(this.day);
+  private store: CaseDetail[] = [...demoToyCases(this.day), ...buildDemoCases(this.day)];
+  private channelList: ChannelInfo[] = demoChannels(this.day);
+  private broadcastList: BroadcastInfo[] = demoBroadcasts(this.day);
+  private invoiceList = [demoInvoice('7K3QXP', '25', 'Validator-Hilfe'), demoInvoice('M2PAID', '5', 'Spende Testnet', 'paid')];
+  private automationList: AutomationInfo[] = demoAutomations(this.day);
+  private extraMessages: MessageSummary[] = demoFeedMessages(this.day);
   private plan: PlanId = 'pro';
   private planCredits = 272;
   private purchasedCredits = 100;
@@ -155,9 +177,13 @@ export class DemoApi implements Api {
     return this.delay({ ...draft, creditsSpent }, 900);
   }
 
-  async sendDraft(draftId: string) {
+  async sendDraft(draftId: string, channelId?: string) {
     const c = this.store.find((x) => x.draft?.id === draftId);
     if (!c) throw new ApiError(404, 'not_found', 'Diesen Entwurf gibt es nicht.');
+    if (channelId !== undefined) {
+      if (!c.contact) throw new ApiError(400, 'no_contact', 'Dieser Vorgang hat noch keinen Kontakt. Ordne einen Kontakt zu oder sende den Entwurf selbst.');
+      c.messages.unshift({ id: `msg_${Date.now()}`, channelKind: 'sms', channelName: 'Projekt-Handy', direction: 'out', contact: c.contact, caseId: c.id, subject: c.draft!.subject, preview: c.draft!.body.slice(0, 140), body: c.draft!.body, status: 'sent', safety: [], createdAt: new Date().toISOString() });
+    }
     c.draft = undefined;
     c.timeline.unshift({ at: new Date().toISOString(), text: 'Antwort versendet, Wiedervorlage in 14 Tagen' });
     return this.updateCase(c.id, { status: 'waiting', followUpOn: addDays(this.day, 14) });
@@ -273,5 +299,86 @@ export class DemoApi implements Api {
     })();
     this.integrationState = { ...this.integrationState, [kind]: { connected: true, summary: config.user ? `${config.user} @ ${host}` : host } };
     return this.delay(this.integrationState, 700);
+  }
+
+  // ---------- ToyPost ----------
+
+  async messages(filter: { direction?: 'in' | 'out' } = {}) {
+    const all = [...this.store.flatMap((c) => c.messages), ...this.extraMessages].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return this.delay(filter.direction ? all.filter((m) => m.direction === filter.direction) : all);
+  }
+
+  async contacts(q?: string) {
+    return this.delay(demoContacts().filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase())));
+  }
+
+  async channels() {
+    return this.delay({ channels: this.channelList, kinds: DEMO_CHANNEL_KINDS });
+  }
+
+  async createChannel(input: { kind: ChannelInfo['kind']; name: string; config: Record<string, unknown> }) {
+    const kind = DEMO_CHANNEL_KINDS.find((k) => k.kind === input.kind)!;
+    const ch: ChannelInfo = { id: `ch_${Date.now()}`, kind: input.kind, kindLabel: kind.label, name: input.name || kind.label, enabled: true, canSend: kind.canSend, polled: kind.polled, handleLabel: kind.handleLabel, summary: 'Demo: nichts wird wirklich verbunden' };
+    this.channelList = [...this.channelList, ch];
+    return this.delay(ch, 600);
+  }
+
+  async testChannel(id: string) {
+    const ch = this.channelList.find((c) => c.id === id);
+    return this.delay({ ok: true, message: ch?.polled ? 'Verbunden. Der aktuelle Stand ist gespeichert.' : 'Testnachricht gesendet (Demo).' }, 700);
+  }
+
+  async toyOverview() {
+    return this.delay(demoOverview(this.invoiceList, this.broadcastList.filter((b) => b.status === 'draft').length));
+  }
+
+  async broadcasts() {
+    return this.delay(this.broadcastList);
+  }
+
+  async previewBroadcast(id: string, lang: string) {
+    const b = this.broadcastList.find((x) => x.id === id)!;
+    const language = toyLanguage(lang);
+    return this.delay({ language: { code: language.code, name: language.name, dir: language.dir }, subject: language.code === 'de' ? b.subject : `[${language.code}] ${b.subject}`, body: language.code === 'de' ? b.body : `[${language.code}] ${b.body}` }, 500);
+  }
+
+  async sendBroadcast(id: string) {
+    const b = this.broadcastList.find((x) => x.id === id)!;
+    b.status = 'sent';
+    b.sentAt = new Date().toISOString();
+    b.results = { sent: b.recipients, failed: 0, blocked: 0, skipped: 0 };
+    return this.delay(b, 800);
+  }
+
+  async discardBroadcast(id: string) {
+    const b = this.broadcastList.find((x) => x.id === id)!;
+    b.status = 'discarded';
+    return this.delay(b);
+  }
+
+  async createInvoice(input: { address: string; amount: string; label?: string }) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(input.address)) throw new ApiError(400, 'invalid_input', 'Das ist keine gültige Empfangsadresse.');
+    if (!/^\d+(\.\d{1,18})?$/.test(input.amount) || Number(input.amount) <= 0) throw new ApiError(400, 'invalid_input', 'Betrag mit Punkt als Trenner, z. B. 12.5');
+    const code = Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[01IO]/g, 'X');
+    const invoice = demoInvoice(code, input.amount, input.label ?? 'Rechnung');
+    this.invoiceList = [invoice, ...this.invoiceList];
+    return this.delay({ invoice }, 500);
+  }
+
+  async checkText(text: string) {
+    const findings = checkSafety({ text, direction: 'in' }).map((f) => ({ code: f.code, severity: f.severity, message: f.message }));
+    const r = detectToyRequest(text);
+    return this.delay({ findings, toyRequest: r ? { address: r.address, amount: r.amount?.toString(), purpose: r.purpose, link: r.link } : null }, 300);
+  }
+
+  async automations() {
+    return this.delay({ automations: this.automationList, presets: DEMO_PRESETS });
+  }
+
+  async installPreset(id: string) {
+    const p = DEMO_PRESETS.find((x) => x.id === id)!;
+    const a: AutomationInfo = { id: `auto_${id}`, name: p.name, trigger: 'demo', enabled: true, runs: 0, log: [] };
+    this.automationList = [...this.automationList, a];
+    return this.delay(a, 500);
   }
 }

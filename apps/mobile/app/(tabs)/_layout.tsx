@@ -20,7 +20,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Heute' }} />
       <Tabs.Screen name="vorgaenge" options={{ title: 'Vorgänge' }} />
       <Tabs.Screen name="scannen" options={{ title: 'Erfassen' }} />
-      <Tabs.Screen name="suche" options={{ title: 'Suche' }} />
+      <Tabs.Screen name="posteingang" options={{ title: 'Posteingang' }} />
       <Tabs.Screen name="konto" options={{ title: 'Konto' }} />
     </Tabs>
   );

@@ -17,11 +17,14 @@ import { PlansScreen } from '../../apps/mobile/src/screens/PlansScreen.tsx';
 import { CreditsScreen } from '../../apps/mobile/src/screens/CreditsScreen.tsx';
 import { IntegrationsScreen } from '../../apps/mobile/src/screens/IntegrationsScreen.tsx';
 import { SignInScreen } from '../../apps/mobile/src/screens/SignInScreen.tsx';
+import { InboxScreen } from '../../apps/mobile/src/screens/InboxScreen.tsx';
+import { ChannelsScreen } from '../../apps/mobile/src/screens/ChannelsScreen.tsx';
+import { ToyScreen } from '../../apps/mobile/src/screens/ToyScreen.tsx';
 import { useHashRoute } from './shims/nav.ts';
 import { WIDE_BREAKPOINT, usePalette } from '../../apps/mobile/src/theme.ts';
 
-const TAB_ROUTES: Record<string, TabKey> = { '/': 'index', '/vorgaenge': 'vorgaenge', '/scannen': 'scannen', '/suche': 'suche', '/konto': 'konto' };
-const TAB_PATH: Record<TabKey, string> = { index: '/', vorgaenge: '/vorgaenge', scannen: '/scannen', suche: '/suche', konto: '/konto' };
+const TAB_ROUTES: Record<string, TabKey> = { '/': 'index', '/vorgaenge': 'vorgaenge', '/scannen': 'scannen', '/posteingang': 'posteingang', '/suche': 'posteingang', '/konto': 'konto' };
+const TAB_PATH: Record<TabKey, string> = { index: '/', vorgaenge: '/vorgaenge', scannen: '/scannen', posteingang: '/posteingang', konto: '/konto' };
 
 function Current({ route }: { route: string }) {
   if (route.startsWith('/vorgang/')) return <CaseScreen key={route} />;
@@ -32,6 +35,12 @@ function Current({ route }: { route: string }) {
       return <CaptureScreen />;
     case '/suche':
       return <SearchScreen />;
+    case '/posteingang':
+      return <InboxScreen />;
+    case '/kanaele':
+      return <ChannelsScreen />;
+    case '/toy':
+      return <ToyScreen />;
     case '/konto':
       return <AccountScreen />;
     case '/tarife':
