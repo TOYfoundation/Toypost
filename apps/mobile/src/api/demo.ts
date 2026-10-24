@@ -224,6 +224,7 @@ export class DemoApi implements Api {
           direction: 'in',
         },
       ],
+      messages: [],
       timeline: [{ at: new Date().toISOString(), text: `Eingegangen: ${title}` }],
     };
     this.store.unshift(detail);

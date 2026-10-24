@@ -34,6 +34,7 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
     baseLog(msg, extra);
     if (/fehlgeschlagen|nicht gesendet|nicht erreichbar/i.test(msg) && !/^Sentry/.test(msg)) reporter.message(msg, 'warning');
   };
+  const now = opts.now ?? (() => new Date());
   const integrations = new IntegrationStore(db, keys);
   const delivery = new Delivery(
     integrations,
@@ -48,6 +49,7 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
         .get(accountId, caseId) as { paperless_id: number } | undefined;
       return doc ? `${publicUrl.replace(/\/$/, '')}/documents/${doc.paperless_id}/details` : undefined;
     },
+    now,
   );
   const ctx: Context = {
     config,
@@ -59,7 +61,7 @@ export function createApp(config: Config, opts: AppOptions = {}): { server: Serv
     delivery,
     channels: new ChannelStore(db, keys),
     reporter,
-    now: opts.now ?? (() => new Date()),
+    now,
     log,
   };
   delivery.on((accountId, event) => runAutomations(ctx, accountId, event));

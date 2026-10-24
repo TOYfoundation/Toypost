@@ -45,7 +45,7 @@ export type ToyPostEvent =
 export type EventType = ToyPostEvent['type'];
 
 /** Welche Nextcloud-Änderungen ein Ereignis auslöst. Rein, ohne Netzwerk – deshalb gut testbar. */
-export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: string): DavWrite[] {
+export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: string, now: Date = new Date()): DavWrite[] {
   const ics = (uid: string, content: string): DavWrite => ({
     path: calendarObjectPath(cfg, uid),
     contentType: 'text/calendar; charset=utf-8',
@@ -59,7 +59,7 @@ export function davWritesFor(event: ToyPostEvent, cfg: NextcloudConfig, link?: s
     case 'draft.created':
       return [
         {
-          path: draftFilePath(cfg, draftFileName(todayIso(), event.caseTitle)),
+          path: draftFilePath(cfg, draftFileName(todayIso(now), event.caseTitle)),
           contentType: 'text/markdown; charset=utf-8',
           content: `# ${event.subject}\n\n${event.body}\n`,
         },
@@ -88,6 +88,7 @@ export class Delivery {
   private readonly log: (msg: string, extra?: unknown) => void;
   private readonly signingSecret: (accountId: string) => string;
   private readonly linkFor: (accountId: string, caseId: string) => string | undefined;
+  private readonly now: () => Date;
   readonly pending = new Set<Promise<void>>();
   private readonly listeners: ((accountId: string, event: ToyPostEvent) => Promise<void> | void)[] = [];
 
@@ -101,11 +102,13 @@ export class Delivery {
     signingSecret: (accountId: string) => string,
     log: (msg: string, extra?: unknown) => void,
     linkFor: (accountId: string, caseId: string) => string | undefined = () => undefined,
+    now: () => Date = () => new Date(),
   ) {
     this.integrations = integrations;
     this.signingSecret = signingSecret;
     this.log = log;
     this.linkFor = linkFor;
+    this.now = now;
   }
 
   /** Nicht blockierend; in Tests kann mit `settle()` gewartet werden. */
@@ -131,7 +134,7 @@ export class Delivery {
   private async deliver(accountId: string, event: ToyPostEvent): Promise<void> {
     const nc = this.integrations.get(accountId, 'nextcloud');
     const caseId = caseIdOf(event);
-    const davWrites = nc ? davWritesFor(event, nc, caseId ? this.linkFor(accountId, caseId) : undefined) : [];
+    const davWrites = nc ? davWritesFor(event, nc, caseId ? this.linkFor(accountId, caseId) : undefined, this.now()) : [];
     const n8n = this.integrations.get(accountId, 'n8n');
     if (n8n) {
       const body = JSON.stringify({ accountId, at: new Date().toISOString(), ...event, davWrites });
