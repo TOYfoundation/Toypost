@@ -150,3 +150,15 @@ Mit Entscheidung 122 gehört ToyPost zum **ToyVerse** (Überblick: `docs/spaeter
 | **Mitteilungen aus TOYQUEST** | Meilensteine der Lernwelt (neue Orte, neue Maschinen, Saisonstart) als Vorlage für Mitteilungen. Texte aus derselben geprüften Wissensbasis wie die NPCs | Lernwelt `toypay/docs/08_LERNWELT_ZEITREISE.md`, Abschnitt 5 |
 | **Begriffe** | neue Einträge in `i18n/begriffe.tsv` (ToyVerse, ToyCash, Note, Siegel, Anker, Offline-Rahmen, Rückholfrist, Gutschein, Prägegebühr, POL-Topf) über `tools/toy-i18n-sync.mjs` übernehmen | Entscheidung 103 |
 | **Alte ToyCoin-Token** | Warnung „nicht ToyChain-TOY, nicht eintauschbar“ bleibt (Nr. 63). Falls Nr. 127 die Token für die Prägegebühr zulässt, Text ergänzen: „bezahlt nur Prägegebühren“ | Entscheidung 63, 127 |
+
+## 11. ToySafe und gemeinsame Werte (Ergänzung vom 24.10.2026, Vorschlag)
+
+Mit Entscheidung 134 gehört **ToySafe** zum ToyVerse (`docs/spaeter/14-toysafe.md` in `Safehaigit/toycoin`). ToyPost ist für ToySafe der Weg zu den Menschen, ToySafe für ToyPost die Prüfstelle für Muster. Die Grundsätze aus Abschnitt 1 gelten weiter.
+
+| Bereich | Was ToyPost tun soll | Grundlage |
+|---|---|---|
+| **Ereignisse von ToySafe** | `toysafe.warnung`, `toysafe.pruefbericht`, `toysafe.warnliste` annehmen, Signatur (EIP-191) gegen die eingetragene ToySafe-Adresse prüfen, in der Sprache des Kontakts zustellen. Massenversand nur nach Freigabe | ToySafe 14, Abschnitt 6.5 |
+| **Muster an die Warnliste** | Erkennt ToyPost eine Falle, kann der Betreiber das **Muster** (Domain, Adresse, ohne Nachrichteninhalt) als Vorschlag an ToySafe geben. Nichts geht ohne Zustimmung raus | ToySafe 14, 6.3; Vorschlag V3 |
+| **Warnliste lesen** | die signierte Warnliste zusätzlich zu den eigenen Mustern nutzen. Sie warnt, sie sperrt nicht | Vorschlag V3 |
+| **Signierte Webhooks** | Ereignisse von ToyScan und ToySafe nur mit gültiger Signatur annehmen | Vorschlag V5 |
+| **Feste Werte** | **Umgesetzt:** Dezimalstellen, Obergrenze und alte Token kommen aus `packages/shared/src/toy/toyverse-data.ts` (erzeugt aus `shared/toyverse.json`), `test/toyverse.test.ts` prüft sie. Der Abgleich läuft täglich per Pull Request | Entscheidung 135, `15-verknuepfung-und-kompatibilitaet.md` |

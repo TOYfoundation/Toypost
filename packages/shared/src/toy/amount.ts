@@ -4,11 +4,14 @@
  * never floating point. On the wire (ToyScan API, toy_ methods) they travel as decimal strings of smallest units.
  */
 
-export const TOY_DECIMALS = 18;
-export const TOY_UNIT = 10n ** 18n;
+import { TOYVERSE } from './toyverse-data.ts';
+
+// Values come from the shared ToyVerse file (toycoin shared/toyverse.json, decision 135), never typed here.
+export const TOY_DECIMALS = TOYVERSE.toy.decimals;
+export const TOY_UNIT = BigInt(TOYVERSE.toy.unitsPerToy);
 /** Constitution value: hard cap of all TOY ever (10^26 smallest units). */
-export const TOY_MAX_SUPPLY = 10n ** 26n;
-export const TOY_TICKER = 'TOY';
+export const TOY_MAX_SUPPLY = BigInt(TOYVERSE.toy.maxSupplyUnits);
+export const TOY_TICKER = TOYVERSE.toy.ticker;
 
 export class ToyAmountError extends Error {}
 
