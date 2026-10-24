@@ -1,6 +1,6 @@
 # ToyPost
 
-ToyPost ist der Korrespondenz-Assistent des Toy-Ökosystems (ToyChain, ToyCoin, TOYPAY, ToyScan). Er liest jede Post, ob Papierbrief, E-Mail, Telegram, SMS, Matrix, Signal oder Datenfeed. Daraus macht er Vorgänge mit Frist, Betrag und nächstem Schritt, erkennt TOY-Zahlungsaufforderungen und Betrugsversuche und schreibt Antworten. Tester und Community hält er über den Fortschritt der Projekte auf dem Laufenden, in 45 Sprachen und erst nach Freigabe.
+ToyPost ist der Korrespondenz-Assistent des **ToyVerse**, des Toy-Ökosystems aus ToyChain, ToyCoin, TOYPAY, ToyScan und später ToyCash und TOYQUEST (Überblick: `docs/spaeter/11-toyverse.md` in `Safehaigit/toycoin`). Er liest jede Post, ob Papierbrief, E-Mail, Telegram, SMS, Matrix, Signal oder Datenfeed. Daraus macht er Vorgänge mit Frist, Betrag und nächstem Schritt, erkennt TOY-Zahlungsaufforderungen und Betrugsversuche und schreibt Antworten. Tester und Community hält er über den Fortschritt der Projekte auf dem Laufenden, in 45 Sprachen und erst nach Freigabe.
 
 ToyPost ist ein Ableger von Dokufy und übernimmt dessen Grundlage: Paperless-ngx als Archiv und Texterkennung, Nextcloud für Fristen und Entwürfe, n8n für eigene Abläufe.
 
@@ -95,7 +95,7 @@ npm test
 
 ## Ehrlich
 
-- ToyChain ist bei Meilenstein M1; RPC (M7) und ToyScan (M11) gibt es noch nicht. ToyPost setzt die in toycoin beschriebenen Schnittstellen um und liest Antworten tolerant. Das genaue Format ist in `docs/TOY-SCHNITTSTELLE.md` vorgeschlagen.
+- ToyChain ist bei Meilenstein M2 (Stand 20.10.2026); RPC (M7) und ToyScan (M11) gibt es noch nicht. ToyPost setzt die in toycoin beschriebenen Schnittstellen um und liest Antworten tolerant. Das genaue Format ist in `docs/TOY-SCHNITTSTELLE.md` vorgeschlagen.
 - Keccak-256 und die secp256k1-Prüfung sind nach Standard selbst umgesetzt, weil beim Bau keine Paketquelle erreichbar war. Sie sind gegen offizielle Vektoren und gegen OpenSSL geprüft und sollen gegen eine geprüfte Bibliothek (`@noble/hashes`, `@noble/curves`) getauscht werden.
 - Die Erkennung von Phrasen kennt die offizielle BIP-39-Wortliste nicht und arbeitet mit Mustern und Kontextwörtern.
 - Betrugserkennung warnt nur; sie entscheidet nie über Geld.
