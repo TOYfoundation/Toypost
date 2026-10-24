@@ -137,16 +137,16 @@ Daraus entstehen Mitteilungen an Gruppen (z. B. „Tester“, „Community“), 
 
 ## 10. ToyPost im ToyVerse (Ergänzung vom 24.10.2026, Vorschlag)
 
-Mit Entscheidung 117 gehört ToyPost zum **ToyVerse** (Überblick: `docs/spaeter/11-toyverse.md` in `Safehaigit/toycoin`). ToyCash und TOYQUEST-Items kommen erst später. Die Grundsätze aus Abschnitt 1 gelten unverändert: keine Schlüssel, nie Geld senden, Muster nur als Warnung.
+Mit Entscheidung 122 gehört ToyPost zum **ToyVerse** (Überblick: `docs/spaeter/11-toyverse.md` in `Safehaigit/toycoin`). ToyCash und TOYQUEST-Items kommen erst später. Die Grundsätze aus Abschnitt 1 gelten unverändert: keine Schlüssel, nie Geld senden, Muster nur als Warnung.
 
 | Bereich | Was ToyPost tun soll | Grundlage |
 |---|---|---|
 | **ToyVerse-Ampel** | `GET /api/v1/toyverse/ampel` (B1 bis B4) überwachen. Gelb und Rot gehen als Push an den Betreiber und als Entwurf zur Freigabe an die passende Gruppe. Die große rote Lampe bleibt nur bei A1, A2, A5 | ToyScan-Konzept 05, Abschnitt 11 |
-| **Transparenz-Bericht** | zusätzlich Kennzahlen aus `/api/v1/toyverse/wirtschaft`, `/api/v1/toycash`, `/api/v1/toyquest/topf`: Emission, Gebührenfluss, Topf, ToyCash-Umlauf gegenüber Reserve. Keine Prognosen, keine Renditen | Entscheidung 117, 121 |
+| **Transparenz-Bericht** | zusätzlich Kennzahlen aus `/api/v1/toyverse/wirtschaft`, `/api/v1/toycash`, `/api/v1/toyquest/topf`: Emission, Gebührenfluss, Topf, ToyCash-Umlauf gegenüber Reserve. Keine Prognosen, keine Renditen | Entscheidung 122, 126 |
 | **Betrugsschutz** | neue Muster warnen: falsche Prägeseiten, Angebote „ToyCash kaufen mit Rendite“, „Topf-Auszahlung“ gegen Vorkasse, Anfragen nach Gutschein-Codes, gefälschte Mint-Gutscheine | ToyVerse 11, Abschnitt 6 |
 | **Geheimnisse** | Codes von ToyCash-Inhaber-Gutscheinen wie Phrase und Schlüssel behandeln: in ausgehenden Nachrichten blockieren, eingehend schwärzen. Sie sind wie Bargeld | ToyCash 12, Abschnitt 5.3 |
 | **ToyCash-Rechnungen** | erst ab ToyCash Stufe 2: Rechnung als Zahlungsaufforderung, die die Wallet öffnet. ToyPost sieht nie Beträge anderer, nur die Bestätigung der eigenen Rechnung. Format später | ToyCash 12 |
 | **Community-Gruppen** | Kontaktgruppen für Mentoren, Händler, Knotenbetreiber, Gilden, Ersteller zusätzlich zu Tester, Validatoren, Community. Massenversand nur nach Freigabe | ToyVerse 11, Abschnitt 5 |
 | **Mitteilungen aus TOYQUEST** | Meilensteine der Lernwelt (neue Orte, neue Maschinen, Saisonstart) als Vorlage für Mitteilungen. Texte aus derselben geprüften Wissensbasis wie die NPCs | Lernwelt `toypay/docs/08_LERNWELT_ZEITREISE.md`, Abschnitt 5 |
 | **Begriffe** | neue Einträge in `i18n/begriffe.tsv` (ToyVerse, ToyCash, Note, Siegel, Anker, Offline-Rahmen, Rückholfrist, Gutschein, Prägegebühr, POL-Topf) über `tools/toy-i18n-sync.mjs` übernehmen | Entscheidung 103 |
-| **Alte ToyCoin-Token** | Warnung „nicht ToyChain-TOY, nicht eintauschbar“ bleibt (Nr. 63). Falls Nr. 122 die Token für die Prägegebühr zulässt, Text ergänzen: „bezahlt nur Prägegebühren“ | Entscheidung 63, 122 |
+| **Alte ToyCoin-Token** | Warnung „nicht ToyChain-TOY, nicht eintauschbar“ bleibt (Nr. 63). Falls Nr. 127 die Token für die Prägegebühr zulässt, Text ergänzen: „bezahlt nur Prägegebühren“ | Entscheidung 63, 127 |
