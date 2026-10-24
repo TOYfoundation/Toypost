@@ -1,0 +1,96 @@
+# Daily sync with Safehaigit/toycoin (decision 135 of the ToyVerse): languages,
+# glossary and the shared values in shared/toyverse.json. Opens or updates a pull
+# request when something changed; merging stays a manual step.
+#
+# One-time setup (all repositories are private):
+# 1. Fine-grained personal access token with "Contents: Read-only" on
+#    Safehaigit/toycoin, saved as repository secret TOYCOIN_READ_TOKEN.
+# 2. Settings → Actions → General → "Allow GitHub Actions to create and
+#    approve pull requests".
+# Without the secret the job only prints a notice and stops.
+name: Abgleich mit toycoin
+
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-toycoin
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check read token
+        id: token
+        env:
+          TOKEN: ${{ secrets.TOYCOIN_READ_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::notice::Secret TOYCOIN_READ_TOKEN fehlt, Abgleich übersprungen (siehe Kopf dieser Datei)."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
+      - uses: actions/checkout@v4
+        if: steps.token.outputs.ok == 'true'
+        with:
+          repository: Safehaigit/toycoin
+          ref: main
+          path: .toycoin
+          token: ${{ secrets.TOYCOIN_READ_TOKEN }}
+      - uses: actions/setup-node@v4
+        if: steps.token.outputs.ok == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - name: Sync
+        id: sync
+        if: steps.token.outputs.ok == 'true'
+        run: |
+          node tools/toy-i18n-sync.mjs .toycoin
+          echo "rev=$(git -C .toycoin rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          rm -rf .toycoin
+          if git diff --quiet -- packages/shared/src/toy; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Schon auf dem Stand von toycoin."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- packages/shared/src/toy
+          fi
+      # Pull requests opened with GITHUB_TOKEN do not start the CI workflow,
+      # so tests and type checks run here before the pull request is opened.
+      - name: Checks
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          (cd packages/shared && node --test "test/**/*.test.ts")
+          (cd apps/api && node --test "test/**/*.test.ts")
+          npm ci
+          npx tsc --noEmit -p packages/shared
+          npx tsc --noEmit -p apps/api
+      - name: Open or update pull request
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REV: ${{ steps.sync.outputs.rev }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C auto/sync-toycoin
+          git add packages/shared/src/toy
+          git commit -m "chore: sync with toycoin ($REV)"
+          git push --force origin auto/sync-toycoin
+          body="Automatischer Abgleich mit Safehaigit/toycoin (Stand $REV): Sprachen, Begriffe und feste Werte aus shared/toyverse.json. Tests und Typprüfung sind im Workflow gelaufen. Bitte ansehen und zusammenführen."
+          if [ -z "$(gh pr list --head auto/sync-toycoin --state open --json number --jq '.[0].number')" ]; then
+            gh pr create --base main --head auto/sync-toycoin --title "Abgleich mit toycoin ($REV)" --body "$body"
+          else
+            gh pr edit auto/sync-toycoin --title "Abgleich mit toycoin ($REV)" --body "$body"
+          fi

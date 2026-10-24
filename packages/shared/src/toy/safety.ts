@@ -1,4 +1,5 @@
 import { findAddresses, lookalikeOf } from './address.ts';
+import { TOYVERSE } from './toyverse-data.ts';
 
 /**
  * Safety checks for correspondence in the Toy ecosystem. They follow the wallet rules
@@ -30,10 +31,9 @@ export interface SafetyFinding {
  * Old ERC-20 tokens called ToyCoin/TOY. Checked with Etherscan on 19.10.2026: both deployed by
  * 0x18da0be974424d54519c63f62e4b26c0318c00c2 in July 2022, not connected to ToyChain (toycoin docs/02, decision 63).
  */
-export const LEGACY_TOKENS: readonly { chainId: number; chain: string; address: string }[] = [
-  { chainId: 1, chain: 'Ethereum', address: '0xA5B04ce6eDD139C0e58ccdBc0B75E8C67CDA678A' },
-  { chainId: 137, chain: 'Polygon', address: '0x1854b69cd1495c9753c5F1590A35e5DdB556A5BF' },
-];
+export const LEGACY_TOKENS: readonly { chainId: number; chain: string; address: string }[] = TOYVERSE.legacyTokens.map(
+  ({ chainId, chain, address }) => ({ chainId, chain, address }),
+);
 
 // Words around secrets in the languages most likely to appear in correspondence (de, en, fr, es, pt, it, nl, tr, pl).
 const SECRET_WORDS =

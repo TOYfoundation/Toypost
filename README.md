@@ -94,8 +94,12 @@ Danach `package.json` und `package-lock.json` zusammen committen. Die CI nutzt `
 Die 45 Sprachen und die Begriffsliste kommen aus `Safehaigit/toycoin`, damit „Aktivierungs-Pfand“ oder „Wiederherstellungsphrase“ überall gleich übersetzt sind:
 
 ```bash
-node tools/toy-i18n-sync.mjs ../toycoin    # erzeugt packages/shared/src/toy/i18n-data.ts
+node tools/toy-i18n-sync.mjs ../toycoin    # erzeugt i18n-data.ts und toyverse-data.ts in packages/shared/src/toy/
 ```
+
+`toyverse-data.ts` enthält die festen Werte des ToyVerse aus toycoin `shared/toyverse.json` (Entscheidung 135): Dezimalstellen, Obergrenze, Chain-IDs, Typ-Bytes, alte ToyCoin-Token. `amount.ts` und `safety.ts` lesen sie von dort, `test/toyverse.test.ts` prüft sie.
+
+**Automatisch:** Der Workflow „Abgleich mit toycoin“ (`.github/workflows/sync-toycoin.yml`) läuft täglich und auf Knopfdruck und öffnet bei Änderungen einen Pull Request. Einmalig nötig: ein Lese-Schlüssel (fine-grained Token, nur „Contents: Read-only“ für `Safehaigit/toycoin`) als Secret `TOYCOIN_READ_TOKEN` und unter „Settings → Actions → General“ das Häkchen „Allow GitHub Actions to create and approve pull requests“.
 
 ## Tests
 
