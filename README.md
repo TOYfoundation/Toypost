@@ -58,11 +58,24 @@ cp apps/api/.env.example apps/api/.env
 npm run seed --workspace @toypost/api      # Demo-Konto
 npm run api                                # http://localhost:8787
 
-npm install
-cd apps/mobile && npx expo install --fix && npm run start
+npm ci                                     # installiert genau die Versionen aus package-lock.json
+cd apps/mobile && npm run start
 ```
 
 Ohne Server läuft die App im Demo-Modus mit Beispielen für alle Kanäle und die Toy-Projekte. Für den eigenen Server auf Proxmox: `deploy/proxmox/README.md`.
+
+### Abhängigkeiten aktualisieren
+
+`package-lock.json` legt alle Versionen fest, damit jeder Rechner und die CI dasselbe installieren. Zum Aktualisieren:
+
+```bash
+cd apps/mobile && npx expo install --fix   # Expo-Pakete passend zur Expo-Version
+cd ../.. && npm install                    # schreibt die neue package-lock.json
+```
+
+Danach `package.json` und `package-lock.json` zusammen committen. Die CI nutzt `npm ci` und bricht ab, wenn beide nicht zusammenpassen.
+
+**Bekannte Meldungen von `npm audit` (Stand 24.10.2026):** 10 Meldungen (6 hoch, 4 mittel) in Expos eigenen Werkzeugen: `node-forge` und `postcss` über `@expo/cli` und `@expo/metro-config`, `image-size` über `metro`, `decode-uri-component` über `expo-router`. Sie betreffen die Entwicklungs- und Build-Werkzeuge, nicht die API (die hat keine fremden Abhängigkeiten). Eine Behebung gibt es nur über neue Expo-Versionen. Deshalb bei jedem Expo-Update `npm audit --omit=dev` erneut prüfen.
 
 ## Einstellungen
 
