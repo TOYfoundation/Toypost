@@ -13,13 +13,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
       - name: Tests (ohne Abhängigkeiten)
         run: |
           (cd packages/shared && node --test "test/**/*.test.ts")
           (cd apps/api && node --test "test/**/*.test.ts")
+      # Versions of typescript and @types/node come from package-lock.json.
+      - name: Abhängigkeiten installieren (genau nach package-lock.json)
+        run: npm ci
       - name: Typprüfung
         run: |
-          npm install --no-save --no-package-lock --workspaces=false typescript@5 @types/node@24
           npx tsc --noEmit -p packages/shared
           npx tsc --noEmit -p apps/api
 
@@ -30,8 +33,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Abhängigkeiten installieren
-        run: npm install
+          cache: npm
+      # npm ci fails if package.json and package-lock.json disagree,
+      # so the Expo versions cannot drift between runs.
+      - name: Abhängigkeiten installieren (genau nach package-lock.json)
+        run: npm ci
       - name: Expo-Versionen prüfen
         working-directory: apps/mobile
         run: npx expo install --check
