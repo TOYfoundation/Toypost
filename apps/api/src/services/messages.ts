@@ -110,12 +110,14 @@ function insertMessage(db: Db, m: Omit<MessageRow, 'id' | 'created_at'> & { exte
 }
 
 /** Case of an ongoing conversation: same thread, or the newest open case of this contact from the last 30 days. */
-function conversationCase(db: Db, accountId: string, contactId: string, threadKey: string | undefined, now: Date): string | undefined {
+function conversationCase(db: Db, accountId: string, contactId: string, threadKey: string | undefined, now: Date, exactThread = false): string | undefined {
   if (threadKey) {
     const t = db
       .prepare(`SELECT m.case_id FROM messages m JOIN cases c ON c.id = m.case_id WHERE m.account_id = ? AND m.thread_key = ? AND c.status != 'done' ORDER BY m.created_at DESC LIMIT 1`)
       .get(accountId, threadKey) as { case_id: string } | undefined;
     if (t) return t.case_id;
+    // Own scripts (webhook) name their threads exactly: a new key starts a new case
+    if (exactThread) return undefined;
   }
   const since = new Date(now.getTime() - SAME_CONVERSATION_DAYS * 86_400_000).toISOString();
   const c = db
@@ -156,7 +158,7 @@ export async function receiveMessage(ctx: Context, account: AccountRow, channel:
   const findings = checkSafety({ text: fullText, direction: 'in', knownAddresses: knownAddresses(db, account.id) });
   const safety: SafetyNote[] = findings.map((f) => ({ code: f.code, severity: f.severity, message: f.message }));
 
-  let caseId = conversationCase(db, account.id, contact.id, inbound.threadKey, ctx.now());
+  let caseId = conversationCase(db, account.id, contact.id, inbound.threadKey, ctx.now(), kind === 'webhook');
   let createdCase = false;
   const substantial = fullText.length >= ANALYSE_FROM_CHARS || /toychain:0x|\bTOY\b/.test(fullText);
   if (substantial) {

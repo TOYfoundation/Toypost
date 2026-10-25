@@ -133,7 +133,7 @@ export class ChannelStore {
       canSend: CAN_SEND.includes(row.kind),
       polled: POLLED.includes(row.kind),
       handleLabel: HANDLE_KIND[row.kind],
-      inboundUrl: admin && (receives || row.kind === 'toyscan') ? `${publicUrl}/v1/inbox/${row.id}?token=${row.inbound_token}` : undefined,
+      inboundUrl: admin && (receives || row.kind === 'toyscan' || row.kind === 'webhook') ? `${publicUrl}/v1/inbox/${row.id}?token=${row.inbound_token}` : undefined,
       summary: summary[row.kind](),
       lastPollAt: row.last_poll_at ?? undefined,
       lastError: row.last_error ?? undefined,
