@@ -345,6 +345,28 @@ test('Scam message: red warning on the message and an instant push to the user',
   assert.equal(pushes.at(-1)!.headers['x-title'], 'ToyPost: Betrugsverdacht');
 });
 
+test('Webhook: inbound address is shown and each thread key gets its own case with deadline', async () => {
+  const list = await call('GET', '/v1/channels');
+  assert.match(list.body.channels.find((c: any) => c.id === ids.inbox).inboundUrl, /\/v1\/inbox\/ch_.*\?token=/);
+  const msg = (key: string, name: string, version: string) => ({
+    from: 'modellwerk',
+    fromName: 'Modellwerk',
+    subject: `Modellwerk: ${name} (Geplant)`,
+    text: `Geschäftsmodell Elektro Brandt GmbH. Komponente „${name}“ ist geplant.\nErledigen bis zum 15.12.2026.`,
+    externalId: `modellwerk:${key}:${version}`,
+    threadKey: `modellwerk:c1:${key}`,
+  });
+  const a = await call('POST', inboxUrl(ids.inbox), msg('a', 'Mobile Auftrags-App', 'v1'), '');
+  const b = await call('POST', inboxUrl(ids.inbox), msg('b', 'Online-Terminbuchung', 'v1'), '');
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  assert.notEqual(a.body.caseId, b.body.caseId, 'a new thread key starts a new case');
+  assert.equal((await call('GET', `/v1/cases/${b.body.caseId}`)).body.deadline.date, '2026-12-15');
+  const again = await call('POST', inboxUrl(ids.inbox), msg('a', 'Mobile Auftrags-App', 'v1'), '');
+  assert.equal(again.body.duplicate, true);
+  const update = await call('POST', inboxUrl(ids.inbox), msg('a', 'Mobile Auftrags-App', 'v2'), '');
+  assert.equal(update.body.caseId, a.body.caseId, 'same thread key stays in the same case');
+});
+
 test('Contacts: language, groups, a second handle, merge', async () => {
   await call('PATCH', `/v1/contacts/${ids.anna}`, { name: 'Anna Tester', language: 'en', tags: ['Tester'], toyAddress: '0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed' });
   const other = await call('POST', '/v1/contacts', { name: 'Anna (Mail)', handles: [{ kind: 'email', handle: 'Anna@Example.org' }], tags: ['Community'] });
