@@ -60,17 +60,17 @@ function startFake(): Promise<void> {
       const p = url.pathname;
       if (p === '/android/message') return json({ id: `sms-${seen.length}` });
       if (p.startsWith('/ntfy/')) return json({ id: `push-${seen.length}` });
-      if (p === '/gh/repos/Safehaigit/toycoin/commits') return json([{ sha: world.statusSha }]);
-      if (p === '/gh/repos/Safehaigit/toycoin/contents/docs/STATUS.md') {
+      if (p === '/gh/repos/TOYfoundation/toycoin/commits') return json([{ sha: world.statusSha }]);
+      if (p === '/gh/repos/TOYfoundation/toycoin/contents/docs/STATUS.md') {
         res.writeHead(200, { 'content-type': 'text/plain' });
         return res.end(world.statusMd);
       }
-      if (p === '/gh/repos/Safehaigit/toycoin/releases') return json(world.releases);
-      if (p === '/gh/repos/Safehaigit/toycoin/issues' && req.method === 'POST') return json({ number: 7, html_url: 'https://github.com/x/7' }, 201);
-      if (p === '/gh/repos/Safehaigit/toycoin/git/ref/heads/main') return json({ object: { sha: 'basesha' } });
-      if (p === '/gh/repos/Safehaigit/toycoin/git/refs') return json({}, 201);
-      if (p.startsWith('/gh/repos/Safehaigit/toycoin/contents/docs/berichte/')) return json({}, 201);
-      if (p === '/gh/repos/Safehaigit/toycoin/pulls') return json({ number: 9, html_url: 'https://github.com/x/pull/9' }, 201);
+      if (p === '/gh/repos/TOYfoundation/toycoin/releases') return json(world.releases);
+      if (p === '/gh/repos/TOYfoundation/toycoin/issues' && req.method === 'POST') return json({ number: 7, html_url: 'https://github.com/x/7' }, 201);
+      if (p === '/gh/repos/TOYfoundation/toycoin/git/ref/heads/main') return json({ object: { sha: 'basesha' } });
+      if (p === '/gh/repos/TOYfoundation/toycoin/git/refs') return json({}, 201);
+      if (p.startsWith('/gh/repos/TOYfoundation/toycoin/contents/docs/berichte/')) return json({}, 201);
+      if (p === '/gh/repos/TOYfoundation/toycoin/pulls') return json({ number: 9, html_url: 'https://github.com/x/pull/9' }, 201);
       if (p === '/scan/api/v1/ampel') return json(world.ampel);
       if (p === '/scan/api/v1/supply') return json({ gemintet: '50500000000000000000000' });
       if (p.startsWith('/scan/api/v1/address/')) return json({ transaktionen: world.transfers });
@@ -271,7 +271,7 @@ test('Channels: create SMS, webhook, push, GitHub, ToyScan, feed and e-mail', as
   ids.sms = await mk('sms', 'Projekt-Handy', { provider: 'android', url: `${fakeBase}/android`, user: 'u', password: 'p' });
   ids.inbox = await mk('webhook', 'Formular und Mail', { url: `${fakeBase}/hook` });
   ids.push = await mk('ntfy', 'Push an mich', { server: `${fakeBase}/ntfy`, topic: 'toypost-ramon' });
-  ids.github = await mk('github', 'toycoin', { repo: 'Safehaigit/toycoin', token: 'ghp_test', everyMinutes: 15 });
+  ids.github = await mk('github', 'toycoin', { repo: 'TOYfoundation/toycoin', token: 'ghp_test', everyMinutes: 15 });
   ids.scan = await mk('toyscan', 'ToyScan Testnet', { url: `${fakeBase}/scan`, everyMinutes: 5 });
   ids.feed = await mk('feed', 'Projekt-Blog', { url: `${fakeBase}/feed.xml`, everyMinutes: 30 });
   ids.mail = await mk('email', 'Projekt-Mail', { host: '127.0.0.1', port: smtpPort, security: 'none', from: 'team@toy.test', fromName: 'Toy-Team Ä' });

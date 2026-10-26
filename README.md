@@ -1,6 +1,6 @@
 # ToyPost
 
-ToyPost ist der Korrespondenz-Assistent des **ToyVerse**, des Toy-Ökosystems aus ToyChain, ToyCoin, TOYPAY, ToyScan und später ToyCash und TOYQUEST (Überblick: `docs/spaeter/11-toyverse.md` in `Safehaigit/toycoin`). Er liest jede Post, ob Papierbrief, E-Mail, Telegram, SMS, Matrix, Signal oder Datenfeed. Daraus macht er Vorgänge mit Frist, Betrag und nächstem Schritt, erkennt TOY-Zahlungsaufforderungen und Betrugsversuche und schreibt Antworten. Tester und Community hält er über den Fortschritt der Projekte auf dem Laufenden, in 45 Sprachen und erst nach Freigabe.
+ToyPost ist der Korrespondenz-Assistent des **ToyVerse**, des Toy-Ökosystems aus ToyChain, ToyCoin, TOYPAY, ToyScan und später ToyCash und TOYQUEST (Überblick: `docs/spaeter/11-toyverse.md` in `TOYfoundation/toycoin`). Er liest jede Post, ob Papierbrief, E-Mail, Telegram, SMS, Matrix, Signal oder Datenfeed. Daraus macht er Vorgänge mit Frist, Betrag und nächstem Schritt, erkennt TOY-Zahlungsaufforderungen und Betrugsversuche und schreibt Antworten. Tester und Community hält er über den Fortschritt der Projekte auf dem Laufenden, in 45 Sprachen und erst nach Freigabe.
 
 ToyPost ist ein Ableger von Dokufy und übernimmt dessen Grundlage: Paperless-ngx als Archiv und Texterkennung, Nextcloud für Fristen und Entwürfe, n8n für eigene Abläufe.
 
@@ -25,7 +25,7 @@ ToyPost ist ein Ableger von Dokufy und übernimmt dessen Grundlage: Paperless-ng
 - Sicherheitsmeldungen von außen werden nie öffentlich, der Absender bekommt den vertraulichen Meldeweg
 
 **Fortschritt der Toy-Projekte, automatisch kommuniziert**
-- liest `docs/STATUS.md` und Releases von `Safehaigit/toycoin`
+- liest `docs/STATUS.md` und Releases von `TOYfoundation/toycoin`
 - wird ein Meilenstein fertig, liegt eine Mitteilung an die Gruppe „Tester“ zur Freigabe bereit; jede Sprache als Vorschau, Versand über den besten Kanal jedes Empfängers
 - Warnampel von ToyScan: bei Rot sofort Push und Notfall-Mitteilung zum Freigeben
 - Fehlermeldungen per Nachricht werden zu GitHub-Issues, ohne Namen und Telefonnummern
@@ -91,7 +91,7 @@ Danach `package.json` und `package-lock.json` zusammen committen. Die CI nutzt `
 
 ## Sprachen
 
-Die 45 Sprachen und die Begriffsliste kommen aus `Safehaigit/toycoin`, damit „Aktivierungs-Pfand“ oder „Wiederherstellungsphrase“ überall gleich übersetzt sind:
+Die 45 Sprachen und die Begriffsliste kommen aus `TOYfoundation/toycoin`, damit „Aktivierungs-Pfand“ oder „Wiederherstellungsphrase“ überall gleich übersetzt sind:
 
 ```bash
 node tools/toy-i18n-sync.mjs ../toycoin    # erzeugt i18n-data.ts und toyverse-data.ts in packages/shared/src/toy/
@@ -99,7 +99,7 @@ node tools/toy-i18n-sync.mjs ../toycoin    # erzeugt i18n-data.ts und toyverse-d
 
 `toyverse-data.ts` enthält die festen Werte des ToyVerse aus toycoin `shared/toyverse.json` (Entscheidung 135): Dezimalstellen, Obergrenze, Chain-IDs, Typ-Bytes, alte ToyCoin-Token. `amount.ts` und `safety.ts` lesen sie von dort, `test/toyverse.test.ts` prüft sie.
 
-**Automatisch:** Der Workflow „Abgleich mit toycoin“ (`.github/workflows/sync-toycoin.yml`) läuft täglich und auf Knopfdruck und öffnet bei Änderungen einen Pull Request. Einmalig nötig: ein Lese-Schlüssel (fine-grained Token, nur „Contents: Read-only“ für `Safehaigit/toycoin`) als Secret `TOYCOIN_READ_TOKEN` und unter „Settings → Actions → General“ das Häkchen „Allow GitHub Actions to create and approve pull requests“.
+**Automatisch:** Der Workflow „Abgleich mit toycoin“ (`.github/workflows/sync-toycoin.yml`) läuft täglich und auf Knopfdruck und öffnet bei Änderungen einen Pull Request. Einmalig nötig: ein Lese-Schlüssel (fine-grained Token, nur „Contents: Read-only“ für `TOYfoundation/toycoin`) als Secret `TOYCOIN_READ_TOKEN` und unter „Settings → Actions → General“ das Häkchen „Allow GitHub Actions to create and approve pull requests“.
 
 ## Tests
 
@@ -116,3 +116,7 @@ npm test
 - Keccak-256 und die secp256k1-Prüfung sind nach Standard selbst umgesetzt, weil beim Bau keine Paketquelle erreichbar war. Sie sind gegen offizielle Vektoren und gegen OpenSSL geprüft und sollen gegen eine geprüfte Bibliothek (`@noble/hashes`, `@noble/curves`) getauscht werden.
 - Die Erkennung von Phrasen kennt die offizielle BIP-39-Wortliste nicht und arbeitet mit Mustern und Kontextwörtern.
 - Betrugserkennung warnt nur; sie entscheidet nie über Geld.
+
+## Lizenz
+
+MIT, siehe `LICENSE`. Gilt für den Code in diesem Repository. Eingebundene Pakete wie Paperless-ngx, Nextcloud und n8n behalten ihre eigenen Lizenzen.

@@ -311,7 +311,7 @@ export function ToyScreen() {
       </Section>
 
       <Text style={[s.caption, { marginTop: space.xl }]}>
-        {o?.languages ?? 45} Sprachen und Begriffsliste wie TOYPAY Wallet und ToyScan (aus Safehaigit/toycoin). ToyPost hat keine Schlüssel und zahlt nie selbst.
+        {o?.languages ?? 45} Sprachen und Begriffsliste wie TOYPAY Wallet und ToyScan (aus TOYfoundation/toycoin). ToyPost hat keine Schlüssel und zahlt nie selbst.
       </Text>
     </Screen>
   );

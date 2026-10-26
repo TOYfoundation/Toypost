@@ -97,7 +97,7 @@ const FORMS: Partial<Record<MessageChannelKind, { purpose: string; fields: Field
   github: {
     purpose: 'Fortschritt der Toy-Projekte: Meilensteine aus docs/STATUS.md und neue Versionen. Mit Token auch Issues und Berichte.',
     fields: [
-      { key: 'repo', label: 'Repository', placeholder: 'Safehaigit/toycoin' },
+      { key: 'repo', label: 'Repository', placeholder: 'TOYfoundation/toycoin' },
       { key: 'token', label: 'Token (fein granuliert)', placeholder: 'github_pat_…', secret: true, optional: true, hint: 'Lesen reicht für Meilensteine. Für Issues und Berichte: Issues und Pull Requests schreiben.' },
     ],
   },
