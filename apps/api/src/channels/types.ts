@@ -170,7 +170,7 @@ export function validateChannelConfig(kind: ChannelKind, body: any): ChannelConf
       return { url: url(body, 'url')!, everyMinutes: minutes(body, 30, 5) };
     case 'github':
       return {
-        repo: str(body, 'repo', { pattern: /^[\w.-]+\/[\w.-]+$/, hint: 'Repository im Format besitzer/name, z. B. Safehaigit/toycoin.' })!,
+        repo: str(body, 'repo', { pattern: /^[\w.-]+\/[\w.-]+$/, hint: 'Repository im Format besitzer/name, z. B. TOYfoundation/toycoin.' })!,
         token: str(body, 'token', { optional: true }),
         branch: str(body, 'branch', { optional: true }) ?? 'main',
         everyMinutes: minutes(body, 15, 5),

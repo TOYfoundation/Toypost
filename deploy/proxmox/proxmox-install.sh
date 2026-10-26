@@ -8,7 +8,7 @@
 # Ohne Rückfragen: alle Angaben als Umgebungsvariablen setzen (siehe "Angaben") und TOYPOST_JA=1.
 set -euo pipefail
 
-REPO=${TOYPOST_REPO:-Safehaigit/toypost}
+REPO=${TOYPOST_REPO:-TOYfoundation/Toypost}
 REF=${TOYPOST_REF:-main}
 GITHUB_API=${TOYPOST_GITHUB_API:-https://api.github.com}
 WORK=${TOYPOST_WORK:-/root/toypost-install}

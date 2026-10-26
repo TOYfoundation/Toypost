@@ -33,7 +33,7 @@ export function demoChannels(day: string): ChannelInfo[] {
     { id: 'ch_tg', kind: 'telegram', kindLabel: 'Telegram', name: 'ToyCoin-Bot', enabled: true, canSend: true, polled: false, handleLabel: 'Chat-ID', summary: 'Bot 7412…', inboundUrl: 'https://toypost.example/v1/inbox/ch_tg?token=…' },
     { id: 'ch_sms', kind: 'sms', kindLabel: 'SMS', name: 'Projekt-Handy', enabled: true, canSend: true, polled: false, handleLabel: 'Telefonnummer (+49…)', summary: 'Android-Gateway 192.168.1.40:8080', inboundUrl: 'https://toypost.example/v1/inbox/ch_sms?token=…' },
     { id: 'ch_push', kind: 'ntfy', kindLabel: 'Mitteilungen (ntfy / UnifiedPush)', name: 'Push an mich', enabled: true, canSend: true, polled: false, summary: 'ntfy.sh/toypost-team' },
-    { id: 'ch_gh', kind: 'github', kindLabel: 'GitHub-Projekt', name: 'toycoin', enabled: true, canSend: false, polled: true, summary: 'Safehaigit/toycoin (main), alle 15 Min.', lastPollAt: at },
+    { id: 'ch_gh', kind: 'github', kindLabel: 'GitHub-Projekt', name: 'toycoin', enabled: true, canSend: false, polled: true, summary: 'TOYfoundation/toycoin (main), alle 15 Min.', lastPollAt: at },
     { id: 'ch_scan', kind: 'toyscan', kindLabel: 'ToyScan und ToyChain', name: 'ToyScan Testnet', enabled: true, canSend: false, polled: true, summary: 'scan.toycoin.example, 1 Adresse', lastPollAt: at },
     { id: 'ch_feed', kind: 'feed', kindLabel: 'Datenfeed (RSS, Atom, JSON)', name: 'Projekt-Blog', enabled: true, canSend: false, polled: true, summary: 'blog.toycoin.example, alle 30 Min.', lastPollAt: at },
   ];

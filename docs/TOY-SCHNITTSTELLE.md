@@ -1,6 +1,6 @@
 # ToyPost und die Toy-Projekte: Schnittstelle
 
-Stand 19.10.2026, ergänzt 24.10.2026 (Abschnitt 10, ToyVerse) · Vorschlag · Gilt für ToyPost (dieses Repository) und für `Safehaigit/toycoin` (ToyChain, TOYPAY Wallet, ToyScan).
+Stand 19.10.2026, ergänzt 24.10.2026 (Abschnitt 10, ToyVerse) · Vorschlag · Gilt für ToyPost (dieses Repository) und für `TOYfoundation/toycoin` (ToyChain, TOYPAY Wallet, ToyScan).
 
 ToyPost ist der Korrespondenz-Assistent im Toy-Ökosystem: Er liest Post aus allen Kanälen (Brief, E-Mail, Telegram, SMS, Matrix, Signal, Feeds), erkennt TOY-Zahlungsaufforderungen und Betrugsversuche, verschickt Rechnungen in TOY und hält Tester und Community über den Fortschritt der Projekte auf dem Laufenden, in ihren Sprachen.
 
@@ -112,7 +112,7 @@ ToyPost bietet die Anmeldung mit der TOYPAY Wallet an:
 
 ## 7. Projekt-Fortschritt
 
-ToyPost liest aus `Safehaigit/toycoin`:
+ToyPost liest aus `TOYfoundation/toycoin`:
 
 - **`docs/STATUS.md`**, Tabelle „Überblick Meilensteine“: Zeilen `| M2 | Inhalt | ✅ fertig … |`. Ein Meilenstein gilt als fertig, wenn die Status-Spalte „✅“ oder „fertig“ enthält. **Wunsch:** dieses Tabellenformat beibehalten.
 - **Releases** auf GitHub.
@@ -137,7 +137,7 @@ Daraus entstehen Mitteilungen an Gruppen (z. B. „Tester“, „Community“), 
 
 ## 10. ToyPost im ToyVerse (Ergänzung vom 24.10.2026, Vorschlag)
 
-Mit Entscheidung 122 gehört ToyPost zum **ToyVerse** (Überblick: `docs/spaeter/11-toyverse.md` in `Safehaigit/toycoin`). ToyCash und TOYQUEST-Items kommen erst später. Die Grundsätze aus Abschnitt 1 gelten unverändert: keine Schlüssel, nie Geld senden, Muster nur als Warnung.
+Mit Entscheidung 122 gehört ToyPost zum **ToyVerse** (Überblick: `docs/spaeter/11-toyverse.md` in `TOYfoundation/toycoin`). ToyCash und TOYQUEST-Items kommen erst später. Die Grundsätze aus Abschnitt 1 gelten unverändert: keine Schlüssel, nie Geld senden, Muster nur als Warnung.
 
 | Bereich | Was ToyPost tun soll | Grundlage |
 |---|---|---|
@@ -153,7 +153,7 @@ Mit Entscheidung 122 gehört ToyPost zum **ToyVerse** (Überblick: `docs/spaeter
 
 ## 11. ToySafe und gemeinsame Werte (Ergänzung vom 24.10.2026, Vorschlag)
 
-Mit Entscheidung 134 gehört **ToySafe** zum ToyVerse (`docs/spaeter/14-toysafe.md` in `Safehaigit/toycoin`). ToyPost ist für ToySafe der Weg zu den Menschen, ToySafe für ToyPost die Prüfstelle für Muster. Die Grundsätze aus Abschnitt 1 gelten weiter.
+Mit Entscheidung 134 gehört **ToySafe** zum ToyVerse (`docs/spaeter/14-toysafe.md` in `TOYfoundation/toycoin`). ToyPost ist für ToySafe der Weg zu den Menschen, ToySafe für ToyPost die Prüfstelle für Muster. Die Grundsätze aus Abschnitt 1 gelten weiter.
 
 | Bereich | Was ToyPost tun soll | Grundlage |
 |---|---|---|

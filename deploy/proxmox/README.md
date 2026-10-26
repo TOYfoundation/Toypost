@@ -8,7 +8,7 @@ Die vollständige Anleitung steht im Claude-Doc „ToyPost auf Proxmox – Insta
 ```bash
 read -rsp "GitHub-Token (Enter, wenn das Repository öffentlich ist): " GITHUB_TOKEN; echo; export GITHUB_TOKEN
 curl -fsSL ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} -H "Accept: application/vnd.github.raw+json" \
-  -o /root/toypost-install.sh "https://api.github.com/repos/Safehaigit/toypost/contents/deploy/proxmox/proxmox-install.sh?ref=main" \
+  -o /root/toypost-install.sh "https://api.github.com/repos/TOYfoundation/Toypost/contents/deploy/proxmox/proxmox-install.sh?ref=main" \
   && bash /root/toypost-install.sh
 ```
 
@@ -29,7 +29,7 @@ liegen in `/root/toypost-install/angaben`, die Zugänge in `/root/toypost-instal
 
 ```bash
 sudo mkdir -p /opt/toypost && sudo chown "$USER" /opt/toypost
-git clone https://github.com/Safehaigit/toypost.git /opt/toypost/src   # oder toypost.zip entpacken
+git clone https://github.com/TOYfoundation/Toypost.git /opt/toypost/src   # oder toypost.zip entpacken
 cp -r /opt/toypost/src/deploy/proxmox/. /opt/toypost/
 cd /opt/toypost && nano .env                                         # siehe Anleitung, Schritt 3
 mkdir -p data/eingang data/export && sudo chown -R 33:33 data
